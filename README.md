@@ -3,7 +3,7 @@ Emulate Z80/i8080 CPU.
 
 This is a toy.  It is not complete so don't use it, yet!  Do send me PRs!
 
-Currently only UT (Unit Test works) is rigged in.
+Currently only UT (Unit Test) is rigged in.
 
 1. Install Go.
 2. go get github.com/marcopeereboom/toyz80
@@ -16,3 +16,5 @@ Adding more opcodes is typically a 3 step process.
 3. Add UT test case for all edge cases for new opcode in z80/z80_test.go.
 
 If it works, send me a PR.
+
+Multi byte opcodes are a bit more involved and opcodes that don't have an example may need some extra magic.
