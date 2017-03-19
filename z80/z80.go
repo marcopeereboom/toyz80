@@ -43,6 +43,7 @@ type z80 struct {
 	memory []byte
 
 	totalCycles uint64
+	mode        CPUMode
 }
 
 // DumpRegisters returns a dump of all registers.
@@ -95,8 +96,9 @@ func (z *z80) DumpRegisters() string {
 }
 
 // New returns a cold reset Z80 CPU struct.
-func New() *z80 {
+func New(mode CPUMode) *z80 {
 	return &z80{
+		mode:   mode,
 		memory: make([]byte, 65536),
 	}
 }
@@ -347,8 +349,8 @@ func (z *z80) Step() error {
 
 // Disassemble disassembles the instruction at the provided address and also
 // returns the number of bytes consumed.
-func (z *z80) Disassemble(address uint16, mode CPUMode) (string, int) {
-	opc, dst, src, noBytes := z.DisassembleComponents(address, mode)
+func (z *z80) Disassemble(address uint16) (string, int) {
+	opc, dst, src, noBytes := z.DisassembleComponents(address)
 
 	if dst != "" && src != "" {
 		src = "," + src
@@ -362,7 +364,7 @@ func (z *z80) Disassemble(address uint16, mode CPUMode) (string, int) {
 
 // DisassembleComponents disassmbles the instruction at the provided address
 // and returns all compnonts of the instruction (opcode, destination, source).
-func (z *z80) DisassembleComponents(address uint16, mode CPUMode) (opc string, dst string, src string, noBytes int) {
+func (z *z80) DisassembleComponents(address uint16) (opc string, dst string, src string, noBytes int) {
 	o := &opcodes[z.memory[address]]
 	if o.multiByte {
 		switch z.memory[address] {
@@ -372,29 +374,29 @@ func (z *z80) DisassembleComponents(address uint16, mode CPUMode) (opc string, d
 	}
 	switch o.dst {
 	case condition:
-		dst = o.dstR[mode]
+		dst = o.dstR[z.mode]
 	case displacement:
 		dst = fmt.Sprintf("$%04x", address+2+
 			uint16(int8(z.memory[address+1])))
 	case registerIndirect:
-		if mode == Mode8080 {
-			dst = fmt.Sprintf("%v", o.dstR[mode])
+		if z.mode == Mode8080 {
+			dst = fmt.Sprintf("%v", o.dstR[z.mode])
 		} else {
-			dst = fmt.Sprintf("(%v)", o.dstR[mode])
+			dst = fmt.Sprintf("(%v)", o.dstR[z.mode])
 		}
 	case immediateExtended:
 		dst = fmt.Sprintf("$%04x", uint16(z.memory[address+1])|
 			uint16(z.memory[address+2])<<8)
 	case register:
-		dst = o.dstR[mode]
+		dst = o.dstR[z.mode]
 	}
 
 	switch o.src {
 	case registerIndirect:
-		if mode == Mode8080 {
-			src = fmt.Sprintf("%v", o.srcR[mode])
+		if z.mode == Mode8080 {
+			src = fmt.Sprintf("%v", o.srcR[z.mode])
 		} else {
-			src = fmt.Sprintf("(%v)", o.srcR[mode])
+			src = fmt.Sprintf("(%v)", o.srcR[z.mode])
 		}
 	case extended:
 		src = fmt.Sprintf("($%04x)", uint16(z.memory[address+1])|
@@ -405,11 +407,11 @@ func (z *z80) DisassembleComponents(address uint16, mode CPUMode) (opc string, d
 		src = fmt.Sprintf("$%04x", uint16(z.memory[address+1])|
 			uint16(z.memory[address+2])<<8)
 	case register:
-		src = o.srcR[mode]
+		src = o.srcR[z.mode]
 	}
 
 	noBytes = int(o.noBytes)
-	opc = o.mnemonic[mode]
+	opc = o.mnemonic[z.mode]
 
 	// if opcode is invalid skip it.
 	if opc == "" {
@@ -439,12 +441,12 @@ func (z *z80) Load(blocks []block) error {
 	return nil
 }
 
-func (z *z80) Trace(mode CPUMode) ([]string, []string, error) {
+func (z *z80) Trace() ([]string, []string, error) {
 	trace := make([]string, 0, 1024)
 	registers := make([]string, 0, 1024)
 
 	for {
-		s, _ := z.Disassemble(z.pc, mode)
+		s, _ := z.Disassemble(z.pc)
 		trace = append(trace, fmt.Sprintf("%04x: %v", z.pc, s))
 		err := z.Step()
 		registers = append(registers, z.DumpRegisters())

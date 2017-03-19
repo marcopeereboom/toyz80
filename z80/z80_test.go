@@ -444,7 +444,7 @@ func TestInstructions(t *testing.T) {
 	for _, test := range tests {
 		t.Logf("running: %v", test.name)
 
-		z := New()
+		z := New(ModeZ80)
 		b := block{org: 0, data: test.data}
 		err := z.Load([]block{b})
 		if err != nil {
@@ -460,7 +460,7 @@ func TestInstructions(t *testing.T) {
 			t.Fatalf("%v: step %v", test.name, err)
 		}
 
-		opc, dst, src, x := z.DisassembleComponents(0, ModeZ80)
+		opc, dst, src, x := z.DisassembleComponents(0)
 		if opc != test.opc {
 			t.Fatalf("%v: invalid opcode got %v expected %v",
 				test.name, opc, test.opc)
