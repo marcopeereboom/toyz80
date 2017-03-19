@@ -307,6 +307,8 @@ func (z *z80) Step() error {
 			z.totalCycles += opcodeStruct.noCycles
 			return nil
 		}
+	case 0xd3: // out (n), a
+		z.bus.IOWrite(z.bus.Read(z.pc+1), byte(z.af>>8))
 	case 0xeb: // ex de,hl
 		t := z.hl
 		z.hl = z.de
@@ -394,6 +396,8 @@ func (z *z80) DisassembleComponents(address uint16) (opc string, dst string, src
 			uint16(z.bus.Read(address+2))<<8)
 	case register:
 		dst = o.dstR[z.mode]
+	case indirect:
+		dst = fmt.Sprintf("($%02x)", z.bus.Read(address+1))
 	}
 
 	switch o.src {

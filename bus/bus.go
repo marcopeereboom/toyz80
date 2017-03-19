@@ -5,12 +5,14 @@ import (
 	"fmt"
 
 	"github.com/marcopeereboom/toyz80/device"
+	"github.com/marcopeereboom/toyz80/device/console"
 )
 
 const (
 	MemoryMax   = 65536
 	MemoryUnit  = 1024
 	MemoryShift = 10
+	IOMax       = 255
 )
 
 const (
@@ -36,10 +38,10 @@ const (
 
 // Bus glues the memory map and devices.
 type Bus struct {
-	memoryFlags []byte           // Memory attributes array
-	memory      []byte           // Memory space
-	ioL         []*device.Device // I/O lookup array
-	io          []byte           // I/O space
+	memoryFlags []byte        // Memory attributes array
+	memory      []byte        // Memory space
+	io          []interface{} // I/O device lookup array
+	ioStart     []byte        // I/O device start location
 }
 
 type Device struct {
@@ -55,7 +57,8 @@ func New(devices []Device) (*Bus, error) {
 	bus := &Bus{
 		memory:      make([]byte, MemoryMax),
 		memoryFlags: make([]byte, MemoryMax/MemoryUnit),
-		io:          make([]byte, 256),
+		io:          make([]interface{}, IOMax),
+		ioStart:     make([]byte, IOMax),
 	}
 
 	for _, d := range devices {
@@ -67,6 +70,19 @@ func New(devices []Device) (*Bus, error) {
 				return nil, err
 			}
 		case DeviceSimpleConsole:
+			// Console device uses 2 ports
+			if int(d.Start)+d.Size+2 > IOMax {
+				return nil, ErrInvalidSize
+			}
+			console, err := console.New()
+			if err != nil {
+				return nil, err
+			}
+			// XXX rethink this
+			bus.io[d.Start] = console
+			bus.io[d.Start+1] = console
+			bus.ioStart[d.Start] = byte(d.Start)
+			bus.ioStart[d.Start+1] = byte(d.Start)
 		default:
 			return nil, ErrInvalidDeviceType
 		}
@@ -120,4 +136,8 @@ func (b *Bus) Write(address uint16, data byte) {
 		panic(fmt.Sprintf("invalid write location: 0x%04x", address))
 	}
 	b.memory[address] = data
+}
+
+func (b *Bus) IOWrite(address, data byte) {
+	b.io[address].(device.Device).Write(address-b.ioStart[address], data)
 }

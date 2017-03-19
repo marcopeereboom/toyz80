@@ -19,6 +19,7 @@ const (
 	bit
 	condition
 	displacement
+	indirect
 )
 
 // opcode describes an instruction.
@@ -672,7 +673,14 @@ var (
 		// 0xd2
 		opcode{},
 		// 0xd3
-		opcode{},
+		opcode{
+			mnemonic: []string{"out", "out"},
+			dst:      indirect,
+			src:      register,
+			srcR:     []string{"a", ""},
+			noBytes:  2,
+			noCycles: 11,
+		},
 		// 0xd4
 		opcode{},
 		// 0xd5
