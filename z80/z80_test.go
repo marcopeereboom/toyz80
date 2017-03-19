@@ -1,6 +1,10 @@
 package z80
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/marcopeereboom/toyz80/bus"
+)
 
 //func TestOpcodeMap(t *testing.T) {
 //	OpcodeMap()
@@ -57,7 +61,7 @@ func TestInstructions(t *testing.T) {
 			init: func(z *z80) { z.af = 0xff00; z.bc = 0x1122 },
 			expect: func(z *z80) bool {
 				return z.af == 0xff00 && z.pc == 0x0001 &&
-					z.memory[0x1122] == 0xff
+					z.bus.Read(0x1122) == 0xff
 			},
 		},
 		// 0x03
@@ -149,11 +153,11 @@ func TestInstructions(t *testing.T) {
 			data: []byte{0x0a},
 			init: func(z *z80) {
 				z.bc = 0x1122
-				z.memory[0x1122] = 0xaa
+				z.bus.Write(0x1122, 0xaa)
 			},
 			expect: func(z *z80) bool {
 				return z.af == 0xaa00 && z.pc == 0x0001 &&
-					z.memory[0x1122] == 0xaa
+					z.bus.Read(0x1122) == 0xaa
 			},
 		},
 		// 0x18
@@ -240,11 +244,11 @@ func TestInstructions(t *testing.T) {
 			data: []byte{0x1a},
 			init: func(z *z80) {
 				z.de = 0x1122
-				z.memory[0x1122] = 0xaa
+				z.bus.Write(0x1122, 0xaa)
 			},
 			expect: func(z *z80) bool {
 				return z.af == 0xaa00 && z.pc == 0x0001 &&
-					z.memory[0x1122] == 0xaa
+					z.bus.Read(0x1122) == 0xaa
 			},
 		},
 		// 0x31 ld sp,nn
@@ -268,10 +272,10 @@ func TestInstructions(t *testing.T) {
 			src:  "($55aa)",
 			data: []byte{0x3a, 0xaa, 0x55},
 			init: func(z *z80) {
-				z.memory[0x55aa] = 0xff
+				z.bus.Write(0x55aa, 0xff)
 			},
 			expect: func(z *z80) bool {
-				return z.memory[0x55aa] == byte(z.af>>8) &&
+				return z.bus.Read(0x55aa) == byte(z.af>>8) &&
 					z.af == 0xff00 && z.pc == 0x0003
 			},
 		},
@@ -444,11 +448,23 @@ func TestInstructions(t *testing.T) {
 	for _, test := range tests {
 		t.Logf("running: %v", test.name)
 
-		z := New(ModeZ80)
-		b := block{org: 0, data: test.data}
-		err := z.Load([]block{b})
+		devices := []bus.Device{
+			bus.Device{
+				Name:  "RAM",
+				Start: 0x0000,
+				Size:  65536,
+				Type:  bus.DeviceRAM,
+				Image: test.data,
+			},
+		}
+		bus, err := bus.New(devices)
 		if err != nil {
-			t.Fatalf("%v: load %v", test.name, err)
+			t.Fatalf("%v: bus %v", test.name, err)
+		}
+
+		z, err := New(ModeZ80, bus)
+		if err != nil {
+			t.Fatalf("%v: z80 %v", test.name, err)
 		}
 
 		if test.init != nil {

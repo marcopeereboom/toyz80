@@ -3,6 +3,8 @@ package z80
 import (
 	"errors"
 	"fmt"
+
+	"github.com/marcopeereboom/toyz80/bus"
 )
 
 var (
@@ -40,10 +42,11 @@ type z80 struct {
 	pc uint16 // program counter
 	sp uint16 // stack pointer
 
-	memory []byte
+	bus *bus.Bus // System bus
 
-	totalCycles uint64
-	mode        CPUMode
+	totalCycles uint64 // Total cycles used
+
+	mode CPUMode // Mode CPU is running
 }
 
 // DumpRegisters returns a dump of all registers.
@@ -96,20 +99,18 @@ func (z *z80) DumpRegisters() string {
 }
 
 // New returns a cold reset Z80 CPU struct.
-func New(mode CPUMode) *z80 {
+func New(mode CPUMode, bus *bus.Bus) (*z80, error) {
 	return &z80{
-		mode:   mode,
-		memory: make([]byte, 65536),
-	}
+		mode: mode,
+		bus:  bus,
+	}, nil
 }
 
 // Reset resets the CPU.  If cold is true then memory is zeroed.
 func (z *z80) Reset(cold bool) {
 	if cold {
 		// toss memory.
-		for i := 0; i < len(z.memory); i++ {
-			z.memory[i] = 0
-		}
+		//z.bus.Reset()
 	}
 
 	//The program counter is reset to 0000h
@@ -208,28 +209,28 @@ func (z *z80) Step() error {
 	// Instructions that return early shall handle pc and noCycles.
 	//
 	// Reference used: http://zilog.com/docs/z80/um0080.pdf
-	opc := z.memory[z.pc]
+	opc := z.bus.Read(z.pc)
 	opcodeStruct := &opcodes[opc]
 	pi := z.genericPostInstruction
 
 	switch opc {
 	case 0x00: // nop
 	case 0x01: // ld bc,nn
-		z.bc = uint16(z.memory[z.pc+1]) | uint16(z.memory[z.pc+2])<<8
+		z.bc = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
 	case 0x02: // ld (bc),a
-		z.memory[z.bc] = byte(z.af >> 8)
+		z.bus.Write(z.bc, byte(z.af>>8))
 	case 0x03: //inc bc
 		z.bc += 1
 		// Condition bits are no affected
 	case 0x04: //inc b
 		z.inc8H(&z.bc)
 	case 0x0a: // ld a,(bc)
-		z.af = uint16(z.memory[z.bc])<<8 | z.af&0x00ff
+		z.af = uint16(z.bus.Read(z.bc))<<8 | z.af&0x00ff
 	case 0x1a: // ld a,(de)
-		z.af = uint16(z.memory[z.de])<<8 | z.af&0x00ff
+		z.af = uint16(z.bus.Read(z.de))<<8 | z.af&0x00ff
 	case 0x18:
 		// We just won the world championship of dumb casting.
-		z.pc = z.pc + 2 + uint16(int8(z.memory[z.pc+1]))
+		z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
 		z.totalCycles += opcodeStruct.noCycles
 		return nil
 	case 0x2f: // cpl
@@ -245,7 +246,7 @@ func (z *z80) Step() error {
 		z.af |= halfCarry
 		z.af |= addsub
 	case 0x31: // ld sp,nn
-		z.sp = uint16(z.memory[z.pc+1]) | uint16(z.memory[z.pc+2])<<8
+		z.sp = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
 	case 0x37: // scf
 		// Condition Bits Affected
 		// S is not affected.
@@ -274,11 +275,12 @@ func (z *z80) Step() error {
 		}
 		z.af &^= addsub
 	case 0x3a: // ld a,(nn)
-		z.af = uint16(z.memory[uint16(z.memory[z.pc+1])|uint16(z.memory[z.pc+2])<<8]) << 8
+		z.af = uint16(z.bus.Read(uint16(z.bus.Read(z.pc+1))|
+			uint16(z.bus.Read(z.pc+2))<<8)) << 8
 	case 0x3c: // inc a
 		z.inc8L(&z.af)
 	case 0x3e: // ld a,n
-		z.af = uint16(z.memory[z.pc+1]) << 8
+		z.af = uint16(z.bus.Read(z.pc+1)) << 8
 	case 0x76: // halt
 		z.totalCycles += opcodeStruct.noCycles
 		return ErrHalt
@@ -288,17 +290,20 @@ func (z *z80) Step() error {
 		// basically nop since it doesn't affect flags
 	case 0xc2: // jmp nz,nn
 		if z.af&zero == 0 {
-			z.pc = uint16(z.memory[z.pc+1]) | uint16(z.memory[z.pc+2])<<8
+			z.pc = uint16(z.bus.Read(z.pc+1)) |
+				uint16(z.bus.Read(z.pc+2))<<8
 			z.totalCycles += opcodeStruct.noCycles
 			return nil
 		}
 	case 0xc3: // jmp nn
-		z.pc = uint16(z.memory[z.pc+1]) | uint16(z.memory[z.pc+2])<<8
+		z.pc = uint16(z.bus.Read(z.pc+1)) |
+			uint16(z.bus.Read(z.pc+2))<<8
 		z.totalCycles += opcodeStruct.noCycles
 		return nil
 	case 0xca: // jmp z,nn
 		if z.af&zero == zero {
-			z.pc = uint16(z.memory[z.pc+1]) | uint16(z.memory[z.pc+2])<<8
+			z.pc = uint16(z.bus.Read(z.pc+1)) |
+				uint16(z.bus.Read(z.pc+2))<<8
 			z.totalCycles += opcodeStruct.noCycles
 			return nil
 		}
@@ -307,7 +312,7 @@ func (z *z80) Step() error {
 		z.hl = z.de
 		z.de = t
 	case 0xed: // z80 only
-		switch z.memory[z.pc+1] {
+		switch z.bus.Read(z.pc + 1) {
 		case 0x44: // neg
 			// Condition Bits Affected
 			// S is set if result is negative; otherwise, it is reset.
@@ -365,11 +370,11 @@ func (z *z80) Disassemble(address uint16) (string, int) {
 // DisassembleComponents disassmbles the instruction at the provided address
 // and returns all compnonts of the instruction (opcode, destination, source).
 func (z *z80) DisassembleComponents(address uint16) (opc string, dst string, src string, noBytes int) {
-	o := &opcodes[z.memory[address]]
+	o := &opcodes[z.bus.Read(address)]
 	if o.multiByte {
-		switch z.memory[address] {
+		switch z.bus.Read(address) {
 		case 0xed:
-			o = &opcodesED[z.memory[address+1]]
+			o = &opcodesED[z.bus.Read(address+1)]
 		}
 	}
 	switch o.dst {
@@ -377,7 +382,7 @@ func (z *z80) DisassembleComponents(address uint16) (opc string, dst string, src
 		dst = o.dstR[z.mode]
 	case displacement:
 		dst = fmt.Sprintf("$%04x", address+2+
-			uint16(int8(z.memory[address+1])))
+			uint16(int8(z.bus.Read(address+1))))
 	case registerIndirect:
 		if z.mode == Mode8080 {
 			dst = fmt.Sprintf("%v", o.dstR[z.mode])
@@ -385,8 +390,8 @@ func (z *z80) DisassembleComponents(address uint16) (opc string, dst string, src
 			dst = fmt.Sprintf("(%v)", o.dstR[z.mode])
 		}
 	case immediateExtended:
-		dst = fmt.Sprintf("$%04x", uint16(z.memory[address+1])|
-			uint16(z.memory[address+2])<<8)
+		dst = fmt.Sprintf("$%04x", uint16(z.bus.Read(address+1))|
+			uint16(z.bus.Read(address+2))<<8)
 	case register:
 		dst = o.dstR[z.mode]
 	}
@@ -399,13 +404,13 @@ func (z *z80) DisassembleComponents(address uint16) (opc string, dst string, src
 			src = fmt.Sprintf("(%v)", o.srcR[z.mode])
 		}
 	case extended:
-		src = fmt.Sprintf("($%04x)", uint16(z.memory[address+1])|
-			uint16(z.memory[address+2])<<8)
+		src = fmt.Sprintf("($%04x)", uint16(z.bus.Read(address+1))|
+			uint16(z.bus.Read(address+2))<<8)
 	case immediate:
-		src = fmt.Sprintf("$%02x", z.memory[address+1])
+		src = fmt.Sprintf("$%02x", z.bus.Read(address+1))
 	case immediateExtended:
-		src = fmt.Sprintf("$%04x", uint16(z.memory[address+1])|
-			uint16(z.memory[address+2])<<8)
+		src = fmt.Sprintf("$%04x", uint16(z.bus.Read(address+1))|
+			uint16(z.bus.Read(address+2))<<8)
 	case register:
 		src = o.srcR[z.mode]
 	}
@@ -423,23 +428,23 @@ func (z *z80) DisassembleComponents(address uint16) (opc string, dst string, src
 }
 
 // block describes an origination address and a data payload for the loader.
-type block struct {
-	org  uint16
-	data []byte
-}
+//type block struct {
+//	org  uint16
+//	data []byte
+//}
 
 // Load loads the provided blocks into the CPU memory.
-func (z *z80) Load(blocks []block) error {
-	for i := range blocks {
-		if len(blocks[i].data)+int(blocks[i].org) > len(z.memory) {
-			return fmt.Errorf("block %v out of bounds", i)
-		}
-
-		copy(z.memory[blocks[i].org:], blocks[i].data)
-	}
-
-	return nil
-}
+//func (z *z80) Load(blocks []block) error {
+//	for i := range blocks {
+//		if len(blocks[i].data)+int(blocks[i].org) > len(z.memory) {
+//			return fmt.Errorf("block %v out of bounds", i)
+//		}
+//
+//		copy(z.memory[blocks[i].org:], blocks[i].data)
+//	}
+//
+//	return nil
+//}
 
 func (z *z80) Trace() ([]string, []string, error) {
 	trace := make([]string, 0, 1024)
