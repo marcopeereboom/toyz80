@@ -346,7 +346,9 @@ func (z *z80) Step() error {
 		}
 	default:
 		//fmt.Printf("opcode %x\n", opcode)
-		return ErrInvalidInstruction
+		//return ErrInvalidInstruction
+		// XXX make this a generic ErrInvalidInstruction
+		return fmt.Errorf("invalid instruction: 0x%02x", opc)
 	}
 
 	pi(opcodeStruct)
@@ -420,7 +422,11 @@ func (z *z80) DisassembleComponents(address uint16) (opc string, dst string, src
 	}
 
 	noBytes = int(o.noBytes)
-	opc = o.mnemonic[z.mode]
+	if len(o.mnemonic) == 0 {
+		opc = "INVALID"
+	} else {
+		opc = o.mnemonic[z.mode]
+	}
 
 	// if opcode is invalid skip it.
 	if opc == "" {

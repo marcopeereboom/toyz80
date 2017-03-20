@@ -6,10 +6,6 @@ import (
 	"github.com/marcopeereboom/toyz80/bus"
 )
 
-//func TestOpcodeMap(t *testing.T) {
-//	OpcodeMap()
-//}
-
 func TestInstructions(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -498,5 +494,20 @@ func TestInstructions(t *testing.T) {
 		if !test.expect(z) {
 			t.Fatalf("%v: failed %v", test.name, z.DumpRegisters())
 		}
+	}
+
+	// Minimal test to verify there is a unit test implemented.
+	for o := range opcodes {
+		if len(opcodes[o].mnemonic) == 0 {
+			continue
+		}
+
+		for _, test := range tests {
+			if byte(o) == test.data[0] {
+				goto next
+			}
+		}
+		t.Fatalf("not implemented: 0x%02x", o)
+	next:
 	}
 }

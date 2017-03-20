@@ -1,7 +1,5 @@
 package z80
 
-import "fmt"
-
 // mode is the instruction's addressing mode.
 type mode int
 
@@ -47,69 +45,7 @@ var (
 	}
 )
 
-type Opcode struct {
-	Opcode         byte // Opcode for instruction
-	ExtendedOpcode byte // Multi byte instruction
-	Cycles         uint // Number of machines cycles used
-	Bytes          uint // Number of bytes used
-}
-
-// OpcodeMap returns a map of opcodes for quick reference.  The key format is
-// mnemonic dst,src.
-func OpcodeMap() map[string]Opcode {
-	rv := make(map[string]Opcode)
-
-	for opc, values := range opcodes {
-		// Sanity.
-		if opc > 255 {
-			panic(fmt.Sprintf("invalid opcode: %v", opc))
-		}
-
-		// Skip undefined opcodes.
-		if len(values.mnemonic) == 0 {
-			continue
-		}
-
-		var dst, comma, src string
-
-		switch values.dst {
-		case invalid:
-		case register:
-			dst = " r"
-		default:
-			panic(fmt.Sprintf("undefined destination: 0x%02x %v",
-				opc, values.dst))
-		}
-
-		if dst != "" {
-			comma = ","
-		}
-
-		switch values.src {
-		case invalid:
-		case register:
-			src = " r"
-		default:
-			panic(fmt.Sprintf("undefined source: 0x%02x %v",
-				opc, values.src))
-		}
-
-		key := values.mnemonic[0] + dst + comma + src
-		if _, found := rv[key]; found {
-			panic("duplicate key: " + key)
-		}
-		rv[key] = Opcode{
-			Opcode:         byte(opc),
-			ExtendedOpcode: 0xff, // XXX not used for now
-			Cycles:         uint(values.noCycles),
-			Bytes:          uint(values.noBytes),
-		}
-	}
-
-	return rv
-}
-
-// opcodes are all possible instructions 8 bit instructions.
+// Opcodes are all possible instructions 8 bit instructions.
 var (
 	opcodes = []opcode{
 		// 0x00 nop
