@@ -6,6 +6,7 @@ import (
 
 	"github.com/marcopeereboom/toyz80/device"
 	"github.com/marcopeereboom/toyz80/device/console"
+	"github.com/marcopeereboom/toyz80/device/dummy"
 )
 
 const (
@@ -34,6 +35,7 @@ const (
 	DeviceRAM
 	DeviceROM
 	DeviceSimpleConsole
+	DeviceDummy
 )
 
 // Bus glues the memory map and devices.
@@ -83,6 +85,13 @@ func New(devices []Device) (*Bus, error) {
 			bus.io[d.Start+1] = console
 			bus.ioStart[d.Start] = byte(d.Start)
 			bus.ioStart[d.Start+1] = byte(d.Start)
+		case DeviceDummy:
+			dummy, err := dummy.New()
+			if err != nil {
+				return nil, err
+			}
+			bus.io[d.Start] = dummy
+			bus.ioStart[d.Start] = byte(d.Start)
 		default:
 			return nil, ErrInvalidDeviceType
 		}

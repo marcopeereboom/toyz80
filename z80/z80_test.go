@@ -385,6 +385,18 @@ func TestInstructions(t *testing.T) {
 			},
 			dontSkipPC: true,
 		},
+		// 0xd3
+		{
+			name: "out (n),a",
+			opc:  "out",
+			dst:  "($aa)",
+			src:  "a",
+			data: []byte{0xd3, 0xaa},
+			init: func(z *z80) { z.af = 0xff00 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002
+			},
+		},
 		// 0xeb
 		{
 			name: "ex de,hl",
@@ -451,6 +463,12 @@ func TestInstructions(t *testing.T) {
 				Size:  65536,
 				Type:  bus.DeviceRAM,
 				Image: test.data,
+			},
+			bus.Device{
+				Name:  "Dummy",
+				Start: 0xaa,
+				Size:  1,
+				Type:  bus.DeviceDummy,
 			},
 		}
 		bus, err := bus.New(devices)
