@@ -4,7 +4,7 @@
 
 start:
 	jr	_start
-text:	.db	"moo la la la", 0x0a, 0xff, 0x00
+text:	.db	"moo la la la", 0x0a, 0x00
 _start:
 	ld	bc,text
 l1:

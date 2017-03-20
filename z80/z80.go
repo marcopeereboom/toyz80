@@ -228,8 +228,7 @@ func (z *z80) Step() error {
 		z.af = uint16(z.bus.Read(z.bc))<<8 | z.af&0x00ff
 	case 0x1a: // ld a,(de)
 		z.af = uint16(z.bus.Read(z.de))<<8 | z.af&0x00ff
-	case 0x18:
-		// We just won the world championship of dumb casting.
+	case 0x18: // jr d
 		z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
 		z.totalCycles += opcodeStruct.noCycles
 		return nil
@@ -239,7 +238,7 @@ func (z *z80) Step() error {
 			z.totalCycles += opcodeStruct.noCycles
 			return nil
 		}
-		// XXX make this gneric
+		// XXX make this generic
 		z.totalCycles += 7
 
 	case 0x2f: // cpl
