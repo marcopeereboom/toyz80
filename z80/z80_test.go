@@ -177,6 +177,53 @@ func TestInstructions(t *testing.T) {
 			},
 			dontSkipPC: true,
 		},
+		// 0x28
+		{
+			name: "jr z,negative",
+			opc:  "jr",
+			dst:  "z",
+			src:  "$ffff",
+			data: []byte{0x28, 0xfd},
+			init: func(z *z80) { z.af = zero },
+			expect: func(z *z80) bool {
+				return z.pc == 0xffff
+			},
+			dontSkipPC: true,
+		},
+		{
+			name: "jr z,positive",
+			opc:  "jr",
+			dst:  "z",
+			src:  "$0005",
+			data: []byte{0x28, 0x3},
+			init: func(z *z80) { z.af = zero },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0005
+			},
+			dontSkipPC: true,
+		},
+		{
+			name: "jr z,negative don't follow",
+			opc:  "jr",
+			dst:  "z",
+			src:  "$ffff",
+			data: []byte{0x28, 0xfd},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002
+			},
+			dontSkipPC: true,
+		},
+		{
+			name: "jr z,positive don't follow",
+			opc:  "jr",
+			dst:  "z",
+			src:  "$0005",
+			data: []byte{0x28, 0x3},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002
+			},
+			dontSkipPC: true,
+		},
 		// 0x2f
 		{
 

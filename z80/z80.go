@@ -427,6 +427,9 @@ func (z *z80) DisassembleComponents(address uint16) (opc string, dst string, src
 	}
 
 	switch o.src {
+	case displacement:
+		src = fmt.Sprintf("$%04x", address+2+
+			uint16(int8(z.bus.Read(address+1))))
 	case registerIndirect:
 		if z.mode == Mode8080 {
 			src = fmt.Sprintf("%v", o.srcR[z.mode])
