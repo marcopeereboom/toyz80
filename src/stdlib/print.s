@@ -7,8 +7,8 @@ start:
 text:	.db	"moo la la la", 0x0a, 0xff, 0x00
 _start:
 	ld	bc,text
-	ld	a,(bc)
 l1:
+	ld	a,(bc)
 	cp	a
 	jr	z,l2
 	out	(COUT),a
