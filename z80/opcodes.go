@@ -183,8 +183,15 @@ var (
 		opcode{},
 		// 0x27
 		opcode{},
-		// 0x28
-		opcode{},
+		// 0x28 // jr z,d
+		opcode{
+			mnemonic: []string{"jr", ""},
+			dst:      condition,
+			dstR:     []string{"z", ""},
+			src:      displacement,
+			noBytes:  2,
+			noCycles: 12, // XXX or 7
+		},
 		// 0x29
 		opcode{},
 		// 0x2a
@@ -548,7 +555,13 @@ var (
 		// 0xbe
 		opcode{},
 		// 0xbf
-		opcode{},
+		opcode{
+			mnemonic: []string{"cp", "cmp"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			noBytes:  1,
+			noCycles: 4,
+		},
 
 		// 0xc0
 		opcode{},

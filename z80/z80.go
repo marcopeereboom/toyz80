@@ -233,6 +233,15 @@ func (z *z80) Step() error {
 		z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
 		z.totalCycles += opcodeStruct.noCycles
 		return nil
+	case 0x28: // jr z,d
+		if z.af&zero == zero {
+			z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
+			z.totalCycles += opcodeStruct.noCycles
+			return nil
+		}
+		// XXX make this gneric
+		z.totalCycles += 7
+
 	case 0x2f: // cpl
 		z.af = z.af&0x00ff | ^z.af&0xff00
 
@@ -288,6 +297,22 @@ func (z *z80) Step() error {
 		z.af = z.af&0x00ff | z.bc&0xff00
 	case 0x7f: // ld a,a
 		// basically nop since it doesn't affect flags
+	case 0xbf: // cp a
+		// XXX the flags are not obvious from the doco at all.
+		// Condition Bits Affected
+		// S is set if result is negative; otherwise, it is reset.
+		// Z is set if result is 0; otherwise, it is reset.
+		// H is set if borrow from bit 4; otherwise, it is reset.
+		// P/V is set if overflow; otherwise, it is reset.
+		// N is set.
+		// C is set if borrow; otherwise, it is reset.
+		z.evalS(byte(z.af >> 8))
+		z.evalZ(byte(z.af >> 8))
+		// XXX figure out H
+		// XXX figure out P
+		z.af |= addsub
+		// XXX figure out C
+
 	case 0xc2: // jmp nz,nn
 		if z.af&zero == 0 {
 			z.pc = uint16(z.bus.Read(z.pc+1)) |
@@ -463,8 +488,10 @@ func (z *z80) Trace() ([]string, []string, error) {
 	for {
 		s, _ := z.Disassemble(z.pc)
 		trace = append(trace, fmt.Sprintf("%04x: %v", z.pc, s))
+		//fmt.Printf("%04x: %v", z.pc, s)
 		err := z.Step()
 		registers = append(registers, z.DumpRegisters())
+		//fmt.Printf("\t%v\n", z.DumpRegisters())
 		if err != nil {
 			return trace, registers, err
 		}
