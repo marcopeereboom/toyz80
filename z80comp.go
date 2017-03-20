@@ -1,7 +1,10 @@
 package main
 
 import (
+	"flag"
 	"fmt"
+	"io/ioutil"
+	"os"
 
 	"github.com/marcopeereboom/toyz80/bus"
 	"github.com/marcopeereboom/toyz80/z80"
@@ -23,18 +26,40 @@ type z80comp struct {
 	// cpu CPU
 }
 
-func main() {
+func _main() error {
 	//var memory []byte
+	var (
+		bootImage = flag.String("boot", "", "boot ROM image")
+		ramImage  = flag.String("ramimage", "", "main RAM image")
+		boot      []byte
+		ram       []byte
+		err       error
+	)
+	flag.Parse()
 
-	boot := []byte{
-		0x31, 0xc4, 0x07, // ld sp,$07c4
-		0xc3, 0x00, 0x10, // jp $1000
+	if *bootImage == "" {
+		boot = []byte{
+			0x31, 0xc4, 0x07, // ld sp,$07c4
+			0xc3, 0x00, 0x10, // jp $1000
+		}
+	} else {
+		boot, err = ioutil.ReadFile(*bootImage)
+		if err != nil {
+			return err
+		}
 	}
 
-	ram := []byte{
-		0x3e, 'a', // ld a, 'a'
-		0xd3, 0x81, // out ($01), a
-		0x76, // halt
+	if *ramImage == "" {
+		ram = []byte{
+			0x3e, 'a', // ld a, 'a'
+			0xd3, 0x81, // out ($01), a
+			0x76, // halt
+		}
+	} else {
+		ram, err = ioutil.ReadFile(*ramImage)
+		if err != nil {
+			return err
+		}
 	}
 
 	devices := []bus.Device{
@@ -62,22 +87,29 @@ func main() {
 	}
 	bus, err := bus.New(devices)
 	if err != nil {
-		fmt.Printf("%v\n", err)
-		return
+		return err
 	}
 
 	cpu, err := z80.New(z80.ModeZ80, bus)
 	if err != nil {
-		fmt.Printf("%v\n", err)
-		return
+		return err
 	}
 
 	trace, registers, err := cpu.Trace()
 	if err != nil && err != z80.ErrHalt {
-		fmt.Printf("trace: %v\n", err)
-		return
+		return err
 	}
 	for i, line := range trace {
 		fmt.Printf("%-25s%s\n", line, registers[i])
+	}
+
+	return nil
+}
+
+func main() {
+	err := _main()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
 	}
 }
