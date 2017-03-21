@@ -139,6 +139,19 @@ func TestInstructions(t *testing.T) {
 					z.af&addsub == 0
 			},
 		},
+		// 0x06
+		{
+
+			name: "ld b,n",
+			opc:  "ld",
+			dst:  "b",
+			src:  "$55",
+			data: []byte{0x06, 0x55},
+			init: func(z *z80) { z.bc = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.bc == 0x5522 && z.pc == 0x0002
+			},
+		},
 		// 0x0a
 		{
 
@@ -154,6 +167,113 @@ func TestInstructions(t *testing.T) {
 			expect: func(z *z80) bool {
 				return z.af == 0xaa00 && z.pc == 0x0001 &&
 					z.bus.Read(0x1122) == 0xaa
+			},
+		},
+		// 0x0b
+		{
+			name: "dec bc",
+			opc:  "dec",
+			dst:  "bc",
+			src:  "",
+			data: []byte{0x0b},
+			init: func(z *z80) { z.bc = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.bc == 0x1121
+			},
+		},
+		{
+			name: "dec bc == 0",
+			opc:  "dec",
+			dst:  "bc",
+			src:  "",
+			data: []byte{0x0b},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.bc == 0xffff
+			},
+		},
+		{
+			name: "dec bc == 0x8000",
+			opc:  "dec",
+			dst:  "bc",
+			src:  "",
+			data: []byte{0x0b},
+			init: func(z *z80) { z.bc = 0x8000 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.bc == 0x7fff
+			},
+		},
+		// 0x0e
+		{
+
+			name: "ld c,n",
+			opc:  "ld",
+			dst:  "c",
+			src:  "$55",
+			data: []byte{0x0e, 0x55},
+			init: func(z *z80) { z.bc = 0x2233 },
+			expect: func(z *z80) bool {
+				return z.bc == 0x2255 && z.pc == 0x0002
+			},
+		},
+		// 0x12
+		{
+
+			name: "ld (de),a",
+			opc:  "ld",
+			dst:  "(de)",
+			src:  "a",
+			data: []byte{0x12},
+			init: func(z *z80) { z.af = 0xffee; z.de = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.af == 0xffee && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0xff
+			},
+		},
+		// 0x13
+		{
+			name: "inc de",
+			opc:  "inc",
+			dst:  "de",
+			src:  "",
+			data: []byte{0x13},
+			init: func(z *z80) { z.de = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.de == 0x1123
+			},
+		},
+		{
+			name: "inc de == -1",
+			opc:  "inc",
+			dst:  "de",
+			src:  "",
+			data: []byte{0x13},
+			init: func(z *z80) { z.de = 0xffff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.de == 0x0
+			},
+		},
+		{
+			name: "inc de == 0x7fff",
+			opc:  "inc",
+			dst:  "de",
+			src:  "",
+			data: []byte{0x13},
+			init: func(z *z80) { z.de = 0x7fff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.de == 0x8000
+			},
+		},
+		// 0x16
+		{
+
+			name: "ld d,n",
+			opc:  "ld",
+			dst:  "d",
+			src:  "$55",
+			data: []byte{0x16, 0x55},
+			init: func(z *z80) { z.de = 0x2233 },
+			expect: func(z *z80) bool {
+				return z.de == 0x5533 && z.pc == 0x0002
 			},
 		},
 		// 0x18
@@ -176,6 +296,116 @@ func TestInstructions(t *testing.T) {
 				return z.pc == 0xffff
 			},
 			dontSkipPC: true,
+		},
+		// 0x1a
+		{
+
+			name: "ld a,(de)",
+			opc:  "ld",
+			dst:  "a",
+			src:  "(de)",
+			data: []byte{0x1a},
+			init: func(z *z80) {
+				z.de = 0x1122
+				z.bus.Write(0x1122, 0xaa)
+			},
+			expect: func(z *z80) bool {
+				return z.af == 0xaa00 && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0xaa
+			},
+		},
+		// 0x1b
+		{
+			name: "dec de",
+			opc:  "dec",
+			dst:  "de",
+			src:  "",
+			data: []byte{0x1b},
+			init: func(z *z80) { z.de = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.de == 0x1121
+			},
+		},
+		{
+			name: "dec de == 0",
+			opc:  "dec",
+			dst:  "de",
+			src:  "",
+			data: []byte{0x1b},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.de == 0xffff
+			},
+		},
+		{
+			name: "dec de == 0x8000",
+			opc:  "dec",
+			dst:  "de",
+			src:  "",
+			data: []byte{0x1b},
+			init: func(z *z80) { z.de = 0x8000 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.de == 0x7fff
+			},
+		},
+		// 0x1e
+		{
+
+			name: "ld e,n",
+			opc:  "ld",
+			dst:  "e",
+			src:  "$55",
+			data: []byte{0x1e, 0x55},
+			init: func(z *z80) { z.de = 0x2233 },
+			expect: func(z *z80) bool {
+				return z.de == 0x2255 && z.pc == 0x0002
+			},
+		},
+		// 0x23
+		{
+			name: "inc hl",
+			opc:  "inc",
+			dst:  "hl",
+			src:  "",
+			data: []byte{0x23},
+			init: func(z *z80) { z.hl = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.hl == 0x1123
+			},
+		},
+		{
+			name: "inc hl == -1",
+			opc:  "inc",
+			dst:  "hl",
+			src:  "",
+			data: []byte{0x23},
+			init: func(z *z80) { z.hl = 0xffff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.hl == 0x0
+			},
+		},
+		{
+			name: "inc hl == 0x7fff",
+			opc:  "inc",
+			dst:  "hl",
+			src:  "",
+			data: []byte{0x23},
+			init: func(z *z80) { z.hl = 0x7fff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.hl == 0x8000
+			},
+		},
+		// 0x26
+		{
+
+			name: "ld h,n",
+			opc:  "ld",
+			dst:  "h",
+			src:  "$55",
+			data: []byte{0x26, 0x55},
+			init: func(z *z80) { z.hl = 0x2233 },
+			expect: func(z *z80) bool {
+				return z.hl == 0x5533 && z.pc == 0x0002
+			},
 		},
 		// 0x28
 		{
@@ -224,6 +454,52 @@ func TestInstructions(t *testing.T) {
 			},
 			dontSkipPC: true,
 		},
+		// 0x2b
+		{
+			name: "dec hl",
+			opc:  "dec",
+			dst:  "hl",
+			src:  "",
+			data: []byte{0x2b},
+			init: func(z *z80) { z.hl = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.hl == 0x1121
+			},
+		},
+		{
+			name: "dec hl == 0",
+			opc:  "dec",
+			dst:  "hl",
+			src:  "",
+			data: []byte{0x2b},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.hl == 0xffff
+			},
+		},
+		{
+			name: "dec hl == 0x8000",
+			opc:  "dec",
+			dst:  "hl",
+			src:  "",
+			data: []byte{0x2b},
+			init: func(z *z80) { z.hl = 0x8000 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.hl == 0x7fff
+			},
+		},
+		// 0x2e
+		{
+
+			name: "ld l,n",
+			opc:  "ld",
+			dst:  "l",
+			src:  "$55",
+			data: []byte{0x2e, 0x55},
+			init: func(z *z80) { z.hl = 0x2233 },
+			expect: func(z *z80) bool {
+				return z.hl == 0x2255 && z.pc == 0x0002
+			},
+		},
 		// 0x2f
 		{
 
@@ -235,6 +511,69 @@ func TestInstructions(t *testing.T) {
 				return z.af&0xff00 == 0x5a00 && z.pc == 0x0001 &&
 					z.af&addsub == addsub &&
 					z.af&halfCarry == halfCarry
+			},
+		},
+		// 0x31 ld sp,nn
+		{
+
+			name: "ld sp,nn",
+			opc:  "ld",
+			dst:  "sp",
+			src:  "$55aa",
+			data: []byte{0x31, 0xaa, 0x55},
+			expect: func(z *z80) bool {
+				return 0x55aa == z.sp && z.pc == 0x0003
+			},
+		},
+		// 0x33
+		{
+			name: "inc sp",
+			opc:  "inc",
+			dst:  "sp",
+			src:  "",
+			data: []byte{0x33},
+			init: func(z *z80) { z.sp = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.sp == 0x1123
+			},
+		},
+		{
+			name: "inc sp == -1",
+			opc:  "inc",
+			dst:  "sp",
+			src:  "",
+			data: []byte{0x33},
+			init: func(z *z80) { z.sp = 0xffff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.sp == 0x0
+			},
+		},
+		{
+			name: "inc sp == 0x7fff",
+			opc:  "inc",
+			dst:  "sp",
+			src:  "",
+			data: []byte{0x33},
+			init: func(z *z80) { z.sp = 0x7fff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.sp == 0x8000
+			},
+		},
+		// 0x36
+		{
+
+			name: "ld (hl),n",
+			opc:  "ld",
+			dst:  "(hl)",
+			src:  "$55",
+			data: []byte{0x36, 0x55},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.bus.Write(z.hl, 0xaa)
+			},
+			expect: func(z *z80) bool {
+				return z.hl == 0x1122 && z.pc == 0x0002 &&
+					z.bus.Read(0x1122) == 0x55
 			},
 		},
 		// 0x37
@@ -249,6 +588,39 @@ func TestInstructions(t *testing.T) {
 					z.af&halfCarry == 0 &&
 					z.af&addsub == 0 &&
 					z.af&carry == carry
+			},
+		},
+		// 0x3b
+		{
+			name: "dec sp",
+			opc:  "dec",
+			dst:  "sp",
+			src:  "",
+			data: []byte{0x3b},
+			init: func(z *z80) { z.sp = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.sp == 0x1121
+			},
+		},
+		{
+			name: "dec sp == 0",
+			opc:  "dec",
+			dst:  "sp",
+			src:  "",
+			data: []byte{0x3b},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.sp == 0xffff
+			},
+		},
+		{
+			name: "dec sp == 0x8000",
+			opc:  "dec",
+			dst:  "sp",
+			src:  "",
+			data: []byte{0x3b},
+			init: func(z *z80) { z.sp = 0x8000 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.sp == 0x7fff
 			},
 		},
 		// 0x3f
@@ -277,35 +649,6 @@ func TestInstructions(t *testing.T) {
 					z.af&carry == carry
 			},
 		},
-		// 0x1a
-		{
-
-			name: "ld a,(de)",
-			opc:  "ld",
-			dst:  "a",
-			src:  "(de)",
-			data: []byte{0x1a},
-			init: func(z *z80) {
-				z.de = 0x1122
-				z.bus.Write(0x1122, 0xaa)
-			},
-			expect: func(z *z80) bool {
-				return z.af == 0xaa00 && z.pc == 0x0001 &&
-					z.bus.Read(0x1122) == 0xaa
-			},
-		},
-		// 0x31 ld sp,nn
-		{
-
-			name: "ld sp,nn",
-			opc:  "ld",
-			dst:  "sp",
-			src:  "$55aa",
-			data: []byte{0x31, 0xaa, 0x55},
-			expect: func(z *z80) bool {
-				return 0x55aa == z.sp && z.pc == 0x0003
-			},
-		},
 		// 0x3a
 		{
 
@@ -330,8 +673,719 @@ func TestInstructions(t *testing.T) {
 			dst:  "a",
 			src:  "$55",
 			data: []byte{0x3e, 0x55},
+			init: func(z *z80) { z.af = 0x2233 },
 			expect: func(z *z80) bool {
-				return z.af == 0x5500 && z.pc == 0x0002
+				return z.af == 0x5533 && z.pc == 0x0002
+			},
+		},
+		// 0x40
+		{
+			name: "ld b,b",
+			opc:  "ld",
+			dst:  "b",
+			src:  "b",
+			data: []byte{0x40},
+			init: func(z *z80) { z.bc = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x2233 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x41
+		{
+			name: "ld b,c",
+			opc:  "ld",
+			dst:  "b",
+			src:  "c",
+			data: []byte{0x41},
+			init: func(z *z80) { z.bc = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x3333 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x42
+		{
+			name: "ld b,d",
+			opc:  "ld",
+			dst:  "b",
+			src:  "d",
+			data: []byte{0x42},
+			init: func(z *z80) { z.bc = 0x2233; z.de = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x4433 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x43
+		{
+			name: "ld b,e",
+			opc:  "ld",
+			dst:  "b",
+			src:  "e",
+			data: []byte{0x43},
+			init: func(z *z80) { z.bc = 0x2233; z.de = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x5533 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x44
+		{
+			name: "ld b,h",
+			opc:  "ld",
+			dst:  "b",
+			src:  "h",
+			data: []byte{0x44},
+			init: func(z *z80) { z.bc = 0x2233; z.hl = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x4433 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x45
+		{
+			name: "ld b,l",
+			opc:  "ld",
+			dst:  "b",
+			src:  "l",
+			data: []byte{0x45},
+			init: func(z *z80) { z.bc = 0x2233; z.hl = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x5533 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x46
+		{
+
+			name: "ld b,(hl)",
+			opc:  "ld",
+			dst:  "b",
+			src:  "(hl)",
+			data: []byte{0x46},
+			init: func(z *z80) {
+				z.bc = 0x3344
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0xaa)
+			},
+			expect: func(z *z80) bool {
+				return z.bc == 0xaa44 && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0xaa
+			},
+		},
+		// 0x47
+		{
+			name: "ld b,a",
+			opc:  "ld",
+			dst:  "b",
+			src:  "a",
+			data: []byte{0x47},
+			init: func(z *z80) { z.af = 0x1144; z.bc = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x1133 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x48
+		{
+			name: "ld c,b",
+			opc:  "ld",
+			dst:  "c",
+			src:  "b",
+			data: []byte{0x48},
+			init: func(z *z80) { z.af = 0x1144; z.bc = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x2222 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x49
+		{
+			name: "ld c,c",
+			opc:  "ld",
+			dst:  "c",
+			src:  "c",
+			data: []byte{0x49},
+			init: func(z *z80) { z.bc = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x2233 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x4a
+		{
+			name: "ld c,d",
+			opc:  "ld",
+			dst:  "c",
+			src:  "d",
+			data: []byte{0x4a},
+			init: func(z *z80) { z.bc = 0x2233; z.de = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2244 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x4b
+		{
+			name: "ld c,e",
+			opc:  "ld",
+			dst:  "c",
+			src:  "e",
+			data: []byte{0x4b},
+			init: func(z *z80) { z.bc = 0x2233; z.de = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2255 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x4c
+		{
+			name: "ld c,h",
+			opc:  "ld",
+			dst:  "c",
+			src:  "h",
+			data: []byte{0x4c},
+			init: func(z *z80) { z.bc = 0x2233; z.hl = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2244 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x4d
+		{
+			name: "ld c,l",
+			opc:  "ld",
+			dst:  "c",
+			src:  "l",
+			data: []byte{0x4d},
+			init: func(z *z80) { z.bc = 0x2233; z.hl = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2255 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x4e
+		{
+
+			name: "ld c,(hl)",
+			opc:  "ld",
+			dst:  "c",
+			src:  "(hl)",
+			data: []byte{0x4e},
+			init: func(z *z80) {
+				z.bc = 0x3344
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0xaa)
+			},
+			expect: func(z *z80) bool {
+				return z.bc == 0x33aa && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0xaa
+			},
+		},
+		// 0x4f
+		{
+			name: "ld c,a",
+			opc:  "ld",
+			dst:  "c",
+			src:  "a",
+			data: []byte{0x4f},
+			init: func(z *z80) { z.af = 0x1144; z.bc = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x2211 == z.bc && z.pc == 0x0001
+			},
+		},
+		// 0x50
+		{
+			name: "ld d,b",
+			opc:  "ld",
+			dst:  "d",
+			src:  "b",
+			data: []byte{0x50},
+			init: func(z *z80) { z.bc = 0x2233; z.de = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2255 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x51
+		{
+			name: "ld d,c",
+			opc:  "ld",
+			dst:  "d",
+			src:  "c",
+			data: []byte{0x51},
+			init: func(z *z80) { z.bc = 0x2233; z.de = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x3355 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x52
+		{
+			name: "ld d,d",
+			opc:  "ld",
+			dst:  "d",
+			src:  "d",
+			data: []byte{0x52},
+			init: func(z *z80) { z.de = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x4455 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x53
+		{
+			name: "ld d,e",
+			opc:  "ld",
+			dst:  "d",
+			src:  "e",
+			data: []byte{0x53},
+			init: func(z *z80) { z.de = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x5555 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x54
+		{
+			name: "ld d,h",
+			opc:  "ld",
+			dst:  "d",
+			src:  "h",
+			data: []byte{0x54},
+			init: func(z *z80) { z.de = 0x2233; z.hl = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x4433 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x55
+		{
+			name: "ld d,l",
+			opc:  "ld",
+			dst:  "d",
+			src:  "l",
+			data: []byte{0x55},
+			init: func(z *z80) { z.de = 0x2233; z.hl = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x5533 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x56
+		{
+
+			name: "ld d,(hl)",
+			opc:  "ld",
+			dst:  "d",
+			src:  "(hl)",
+			data: []byte{0x56},
+			init: func(z *z80) {
+				z.de = 0x3344
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0xaa)
+			},
+			expect: func(z *z80) bool {
+				return z.de == 0xaa44 && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0xaa
+			},
+		},
+		// 0x57
+		{
+			name: "ld d,a",
+			opc:  "ld",
+			dst:  "d",
+			src:  "a",
+			data: []byte{0x57},
+			init: func(z *z80) { z.de = 0x2233; z.af = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x4433 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x58
+		{
+			name: "ld e,b",
+			opc:  "ld",
+			dst:  "e",
+			src:  "b",
+			data: []byte{0x58},
+			init: func(z *z80) { z.de = 0x2233; z.bc = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2244 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x59
+		{
+			name: "ld e,c",
+			opc:  "ld",
+			dst:  "e",
+			src:  "c",
+			data: []byte{0x59},
+			init: func(z *z80) { z.de = 0x2233; z.bc = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2255 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x5a
+		{
+			name: "ld e,d",
+			opc:  "ld",
+			dst:  "e",
+			src:  "d",
+			data: []byte{0x5a},
+			init: func(z *z80) { z.de = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x2222 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x5b
+		{
+			name: "ld e,e",
+			opc:  "ld",
+			dst:  "e",
+			src:  "e",
+			data: []byte{0x5b},
+			init: func(z *z80) { z.de = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x2233 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x5c
+		{
+			name: "ld e,h",
+			opc:  "ld",
+			dst:  "e",
+			src:  "h",
+			data: []byte{0x5c},
+			init: func(z *z80) { z.de = 0x2233; z.hl = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2244 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x5d
+		{
+			name: "ld e,h",
+			opc:  "ld",
+			dst:  "e",
+			src:  "l",
+			data: []byte{0x5d},
+			init: func(z *z80) { z.de = 0x2233; z.hl = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2255 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x5e
+		{
+
+			name: "ld e,(hl)",
+			opc:  "ld",
+			dst:  "e",
+			src:  "(hl)",
+			data: []byte{0x5e},
+			init: func(z *z80) {
+				z.de = 0x3344
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0xaa)
+			},
+			expect: func(z *z80) bool {
+				return z.de == 0x33aa && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0xaa
+			},
+		},
+		// 0x5f
+		{
+			name: "ld e,a",
+			opc:  "ld",
+			dst:  "e",
+			src:  "a",
+			data: []byte{0x5f},
+			init: func(z *z80) { z.de = 0x2233; z.af = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2244 == z.de && z.pc == 0x0001
+			},
+		},
+		// 0x60
+		{
+			name: "ld h,b",
+			opc:  "ld",
+			dst:  "h",
+			src:  "b",
+			data: []byte{0x60},
+			init: func(z *z80) { z.hl = 0x2233; z.bc = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x4433 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x61
+		{
+			name: "ld h,c",
+			opc:  "ld",
+			dst:  "h",
+			src:  "c",
+			data: []byte{0x61},
+			init: func(z *z80) { z.hl = 0x2233; z.bc = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x5533 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x62
+		{
+			name: "ld h,d",
+			opc:  "ld",
+			dst:  "h",
+			src:  "d",
+			data: []byte{0x62},
+			init: func(z *z80) { z.hl = 0x2233; z.de = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x4433 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x63
+		{
+			name: "ld h,e",
+			opc:  "ld",
+			dst:  "h",
+			src:  "e",
+			data: []byte{0x63},
+			init: func(z *z80) { z.hl = 0x2233; z.de = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x5533 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x64
+		{
+			name: "ld h,h",
+			opc:  "ld",
+			dst:  "h",
+			src:  "h",
+			data: []byte{0x64},
+			init: func(z *z80) { z.hl = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x2233 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x65
+		{
+			name: "ld h,l",
+			opc:  "ld",
+			dst:  "h",
+			src:  "l",
+			data: []byte{0x65},
+			init: func(z *z80) { z.hl = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x3333 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x66
+		{
+
+			name: "ld h,(hl)",
+			opc:  "ld",
+			dst:  "h",
+			src:  "(hl)",
+			data: []byte{0x66},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0xaa)
+			},
+			expect: func(z *z80) bool {
+				return z.hl == 0xaa22 && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0xaa
+			},
+		},
+		// 0x67
+		{
+			name: "ld h,a",
+			opc:  "ld",
+			dst:  "h",
+			src:  "a",
+			data: []byte{0x67},
+			init: func(z *z80) { z.hl = 0x2233; z.af = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x4433 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x68
+		{
+			name: "ld l,b",
+			opc:  "ld",
+			dst:  "l",
+			src:  "b",
+			data: []byte{0x68},
+			init: func(z *z80) { z.hl = 0x2233; z.bc = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2244 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x69
+		{
+			name: "ld l,c",
+			opc:  "ld",
+			dst:  "l",
+			src:  "c",
+			data: []byte{0x69},
+			init: func(z *z80) { z.hl = 0x2233; z.bc = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2255 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x6a
+		{
+			name: "ld l,d",
+			opc:  "ld",
+			dst:  "l",
+			src:  "d",
+			data: []byte{0x6a},
+			init: func(z *z80) { z.hl = 0x2233; z.de = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2244 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x6b
+		{
+			name: "ld l,e",
+			opc:  "ld",
+			dst:  "l",
+			src:  "e",
+			data: []byte{0x6b},
+			init: func(z *z80) { z.hl = 0x2233; z.de = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2255 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x6c
+		{
+			name: "ld l,h",
+			opc:  "ld",
+			dst:  "l",
+			src:  "h",
+			data: []byte{0x6c},
+			init: func(z *z80) { z.hl = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x2222 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x6d
+		{
+			name: "ld l,l",
+			opc:  "ld",
+			dst:  "l",
+			src:  "l",
+			data: []byte{0x6d},
+			init: func(z *z80) { z.hl = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x2233 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x6e
+		{
+
+			name: "ld l,(hl)",
+			opc:  "ld",
+			dst:  "l",
+			src:  "(hl)",
+			data: []byte{0x6e},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0xaa)
+			},
+			expect: func(z *z80) bool {
+				return z.hl == 0x11aa && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0xaa
+			},
+		},
+		// 0x6f
+		{
+			name: "ld l,a",
+			opc:  "ld",
+			dst:  "l",
+			src:  "a",
+			data: []byte{0x6f},
+			init: func(z *z80) { z.hl = 0x2233; z.af = 0x4455 },
+			expect: func(z *z80) bool {
+				return 0x2244 == z.hl && z.pc == 0x0001
+			},
+		},
+		// 0x70
+		{
+
+			name: "ld (hl),b",
+			opc:  "ld",
+			dst:  "(hl)",
+			src:  "b",
+			data: []byte{0x70},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.bc = 0x3344
+			},
+			expect: func(z *z80) bool {
+				return z.hl == 0x1122 && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0x33
+			},
+		},
+		// 0x71
+		{
+
+			name: "ld (hl),c",
+			opc:  "ld",
+			dst:  "(hl)",
+			src:  "c",
+			data: []byte{0x71},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.bc = 0x3344
+			},
+			expect: func(z *z80) bool {
+				return z.hl == 0x1122 && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0x44
+			},
+		},
+		// 0x72
+		{
+
+			name: "ld (hl),d",
+			opc:  "ld",
+			dst:  "(hl)",
+			src:  "d",
+			data: []byte{0x72},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.de = 0x3344
+			},
+			expect: func(z *z80) bool {
+				return z.hl == 0x1122 && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0x33
+			},
+		},
+		// 0x73
+		{
+
+			name: "ld (hl),e",
+			opc:  "ld",
+			dst:  "(hl)",
+			src:  "e",
+			data: []byte{0x73},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.de = 0x3344
+			},
+			expect: func(z *z80) bool {
+				return z.hl == 0x1122 && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0x44
+			},
+		},
+		// 0x74
+		{
+
+			name: "ld (hl),h",
+			opc:  "ld",
+			dst:  "(hl)",
+			src:  "h",
+			data: []byte{0x74},
+			init: func(z *z80) {
+				z.hl = 0x1122
+			},
+			expect: func(z *z80) bool {
+				return z.hl == 0x1122 && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0x11
+			},
+		},
+		// 0x75
+		{
+
+			name: "ld (hl),l",
+			opc:  "ld",
+			dst:  "(hl)",
+			src:  "l",
+			data: []byte{0x75},
+			init: func(z *z80) {
+				z.hl = 0x1122
+			},
+			expect: func(z *z80) bool {
+				return z.hl == 0x1122 && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0x22
 			},
 		},
 		// 0x76
@@ -348,6 +1402,23 @@ func TestInstructions(t *testing.T) {
 			err:        ErrHalt,
 			dontSkipPC: true,
 		},
+		// 0x77
+		{
+
+			name: "ld (hl),a",
+			opc:  "ld",
+			dst:  "(hl)",
+			src:  "a",
+			data: []byte{0x77},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.af = 0x3344
+			},
+			expect: func(z *z80) bool {
+				return z.hl == 0x1122 && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0x33
+			},
+		},
 		// 0x78
 		{
 			name: "ld a,b",
@@ -358,6 +1429,83 @@ func TestInstructions(t *testing.T) {
 			init: func(z *z80) { z.af = 0x1100; z.bc = 0x2233 },
 			expect: func(z *z80) bool {
 				return 0x2200 == z.af && z.pc == 0x0001
+			},
+		},
+		// 0x79
+		{
+			name: "ld a,c",
+			opc:  "ld",
+			dst:  "a",
+			src:  "c",
+			data: []byte{0x79},
+			init: func(z *z80) { z.af = 0x1100; z.bc = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x3300 == z.af && z.pc == 0x0001
+			},
+		},
+		// 0x7a
+		{
+			name: "ld a,d",
+			opc:  "ld",
+			dst:  "a",
+			src:  "d",
+			data: []byte{0x7a},
+			init: func(z *z80) { z.af = 0x1100; z.de = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x2200 == z.af && z.pc == 0x0001
+			},
+		},
+		// 0x7b
+		{
+			name: "ld a,e",
+			opc:  "ld",
+			dst:  "a",
+			src:  "e",
+			data: []byte{0x7b},
+			init: func(z *z80) { z.af = 0x1100; z.de = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x3300 == z.af && z.pc == 0x0001
+			},
+		},
+		// 0x7c
+		{
+			name: "ld a,h",
+			opc:  "ld",
+			dst:  "a",
+			src:  "h",
+			data: []byte{0x7c},
+			init: func(z *z80) { z.af = 0x1100; z.hl = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x2200 == z.af && z.pc == 0x0001
+			},
+		},
+		// 0x7d
+		{
+			name: "ld a,l",
+			opc:  "ld",
+			dst:  "a",
+			src:  "l",
+			data: []byte{0x7d},
+			init: func(z *z80) { z.af = 0x1100; z.hl = 0x2233 },
+			expect: func(z *z80) bool {
+				return 0x3300 == z.af && z.pc == 0x0001
+			},
+		},
+		// 0x7e
+		{
+
+			name: "ld a,(hl)",
+			opc:  "ld",
+			dst:  "a",
+			src:  "(hl)",
+			data: []byte{0x7e},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0xaa)
+			},
+			expect: func(z *z80) bool {
+				return z.af == 0xaa00 && z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0xaa
 			},
 		},
 		// 0x7f
@@ -444,6 +1592,73 @@ func TestInstructions(t *testing.T) {
 				return z.pc == 0x0002
 			},
 		},
+		// 0xdd 0x23
+		{
+			name: "inc ix",
+			opc:  "inc",
+			dst:  "ix",
+			src:  "",
+			data: []byte{0xdd, 0x23},
+			init: func(z *z80) { z.ix = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.ix == 0x1123
+			},
+		},
+		{
+			name: "inc ix == -1",
+			opc:  "inc",
+			dst:  "ix",
+			src:  "",
+			data: []byte{0xdd, 0x23},
+			init: func(z *z80) { z.ix = 0xffff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.ix == 0x0
+			},
+		},
+		{
+			name: "inc ix == 0x7fff",
+			opc:  "inc",
+			dst:  "ix",
+			src:  "",
+			data: []byte{0xdd, 0x23},
+			init: func(z *z80) { z.ix = 0x7fff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.ix == 0x8000
+			},
+		},
+		// 0xdd 0x2b
+		{
+			name: "dec ix",
+			opc:  "dec",
+			dst:  "ix",
+			src:  "",
+			data: []byte{0xdd, 0x2b},
+			init: func(z *z80) { z.ix = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.ix == 0x1121
+			},
+		},
+		{
+			name: "dec ix == 0",
+			opc:  "dec",
+			dst:  "ix",
+			src:  "",
+			data: []byte{0xdd, 0x2b},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.ix == 0xffff
+			},
+		},
+		{
+			name: "dec ix == 0x8000",
+			opc:  "dec",
+			dst:  "ix",
+			src:  "",
+			data: []byte{0xdd, 0x2b},
+			init: func(z *z80) { z.ix = 0x8000 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.ix == 0x7fff
+			},
+		},
 		// 0xeb
 		{
 			name: "ex de,hl",
@@ -498,8 +1713,76 @@ func TestInstructions(t *testing.T) {
 					z.af&sign == 0
 			},
 		},
+		// 0xfd 0x23
+		{
+			name: "inc iy",
+			opc:  "inc",
+			dst:  "iy",
+			src:  "",
+			data: []byte{0xfd, 0x23},
+			init: func(z *z80) { z.iy = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.iy == 0x1123
+			},
+		},
+		{
+			name: "inc iy == -1",
+			opc:  "inc",
+			dst:  "iy",
+			src:  "",
+			data: []byte{0xfd, 0x23},
+			init: func(z *z80) { z.iy = 0xffff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.iy == 0x0
+			},
+		},
+		{
+			name: "inc iy == 0x7fff",
+			opc:  "inc",
+			dst:  "iy",
+			src:  "",
+			data: []byte{0xfd, 0x23},
+			init: func(z *z80) { z.iy = 0x7fff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.iy == 0x8000
+			},
+		},
+		// 0xfd 0x2b
+		{
+			name: "dec iy",
+			opc:  "dec",
+			dst:  "iy",
+			src:  "",
+			data: []byte{0xfd, 0x2b},
+			init: func(z *z80) { z.iy = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.iy == 0x1121
+			},
+		},
+		{
+			name: "dec iy == 0",
+			opc:  "dec",
+			dst:  "iy",
+			src:  "",
+			data: []byte{0xfd, 0x2b},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.iy == 0xffff
+			},
+		},
+		{
+			name: "dec iy == 0x8000",
+			opc:  "dec",
+			dst:  "iy",
+			src:  "",
+			data: []byte{0xfd, 0x2b},
+			init: func(z *z80) { z.iy = 0x8000 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.iy == 0x7fff
+			},
+		},
 	}
 
+	seen := make(map[uint16]int)
 	for _, test := range tests {
 		t.Logf("running: %v", test.name)
 
@@ -559,14 +1842,21 @@ func TestInstructions(t *testing.T) {
 		if !test.expect(z) {
 			t.Fatalf("%v: failed %v", test.name, z.DumpRegisters())
 		}
+
+		o := uint16(test.data[0])
+		if opcodes[o].multiByte {
+			o = o<<8 | uint16(test.data[1])
+		}
+		seen[o]++
 	}
+	t.Logf("opcodes seen: %v", len(seen))
 
 	// Minimal test to verify there is a unit test implemented.
 	for o := range opcodes {
+		// XXX add 2 byte opcodes
 		if len(opcodes[o].mnemonic) == 0 {
 			continue
 		}
-
 		for _, test := range tests {
 			if byte(o) == test.data[0] {
 				goto next

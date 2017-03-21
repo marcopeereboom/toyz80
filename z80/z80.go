@@ -213,6 +213,7 @@ func (z *z80) Step() error {
 	opcodeStruct := &opcodes[opc]
 	pi := z.genericPostInstruction
 
+	// Move all code into opcodes array for extra vroom vroom.
 	switch opc {
 	case 0x00: // nop
 	case 0x01: // ld bc,nn
@@ -224,14 +225,38 @@ func (z *z80) Step() error {
 		// Condition bits are no affected
 	case 0x04: //inc b
 		z.inc8H(&z.bc)
+	case 0x06: // ld b,n
+		z.bc = uint16(z.bus.Read(z.pc+1))<<8 | z.bc&0x00ff
 	case 0x0a: // ld a,(bc)
 		z.af = uint16(z.bus.Read(z.bc))<<8 | z.af&0x00ff
-	case 0x1a: // ld a,(de)
-		z.af = uint16(z.bus.Read(z.de))<<8 | z.af&0x00ff
+	case 0x0b: //dec bc
+		z.bc -= 1
+		// Condition bits are no affected
+	case 0x0e: // ld c,n
+		z.bc = uint16(z.bus.Read(z.pc+1)) | z.bc&0xff00
+	case 0x12: // ld (de),a
+		z.bus.Write(z.de, byte(z.af>>8))
+	case 0x13: //inc de
+		z.de += 1
+		// Condition bits are no affected
+	case 0x16: // ld d,n
+		z.de = uint16(z.bus.Read(z.pc+1))<<8 | z.de&0x00ff
 	case 0x18: // jr d
 		z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
 		z.totalCycles += opcodeStruct.noCycles
 		return nil
+	case 0x1a: // ld a,(de)
+		z.af = uint16(z.bus.Read(z.de))<<8 | z.af&0x00ff
+	case 0x1b: //dec de
+		z.de -= 1
+		// Condition bits are no affected
+	case 0x1e: // ld e,n
+		z.de = uint16(z.bus.Read(z.pc+1)) | z.de&0xff00
+	case 0x23: //inc hl
+		z.hl += 1
+		// Condition bits are no affected
+	case 0x26: // ld h,n
+		z.hl = uint16(z.bus.Read(z.pc+1))<<8 | z.hl&0x00ff
 	case 0x28: // jr z,d
 		if z.af&zero == zero {
 			z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
@@ -241,6 +266,11 @@ func (z *z80) Step() error {
 		// XXX make this generic
 		z.totalCycles += 7
 
+	case 0x2b: //dec hl
+		z.hl -= 1
+		// Condition bits are no affected
+	case 0x2e: // ld l,n
+		z.hl = uint16(z.bus.Read(z.pc+1)) | z.hl&0xff00
 	case 0x2f: // cpl
 		z.af = z.af&0x00ff | ^z.af&0xff00
 
@@ -255,6 +285,11 @@ func (z *z80) Step() error {
 		z.af |= addsub
 	case 0x31: // ld sp,nn
 		z.sp = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
+	case 0x33: //inc sp
+		z.sp += 1
+		// Condition bits are no affected
+	case 0x36: // ld (hl),n
+		z.bus.Write(z.hl, z.bus.Read(z.pc+1))
 	case 0x37: // scf
 		// Condition Bits Affected
 		// S is not affected.
@@ -285,18 +320,144 @@ func (z *z80) Step() error {
 	case 0x3a: // ld a,(nn)
 		z.af = uint16(z.bus.Read(uint16(z.bus.Read(z.pc+1))|
 			uint16(z.bus.Read(z.pc+2))<<8)) << 8
+	case 0x3b: //dec sp
+		z.sp -= 1
+		// Condition bits are no affected
 	case 0x3c: // inc a
 		z.inc8L(&z.af)
 	case 0x3e: // ld a,n
-		z.af = uint16(z.bus.Read(z.pc+1)) << 8
+		z.af = uint16(z.bus.Read(z.pc+1))<<8 | z.af&0x00ff
+	case 0x40: //ld b,b
+		// basically nop since it doesn't affect flags
+	case 0x41: //ld b,c
+		z.bc = z.bc&0x00ff | z.bc<<8
+	case 0x42: //ld b,d
+		z.bc = z.bc&0x00ff | z.de&0xff00
+	case 0x43: //ld b,e
+		z.bc = z.bc&0x00ff | z.de<<8
+	case 0x44: //ld b,h
+		z.bc = z.bc&0x00ff | z.hl&0xff00
+	case 0x45: //ld b,l
+		z.bc = z.bc&0x00ff | z.hl<<8
+	case 0x46: //ld b,(hl)
+		z.bc = uint16(z.bus.Read(z.hl))<<8 | z.bc&0x00ff
+	case 0x47: // ld b,a
+		z.bc = z.af&0xff00 | z.bc&0x00ff
+	case 0x48: // ld c,b
+		z.bc = z.bc>>8 | z.bc&0xff00
+	case 0x49: //ld c,c
+		// basically nop since it doesn't affect flags
+	case 0x4a: // ld c,d
+		z.bc = z.bc&0xff00 | z.de>>8
+	case 0x4b: // ld c,e
+		z.bc = z.bc&0xff00 | z.de&0x00ff
+	case 0x4c: // ld c,h
+		z.bc = z.bc&0xff00 | z.hl>>8
+	case 0x4d: // ld c,l
+		z.bc = z.bc&0xff00 | z.hl&0x00ff
+	case 0x4e: //ld c,(hl)
+		z.bc = uint16(z.bus.Read(z.hl)) | z.bc&0xff00
+	case 0x4f: // ld c,a
+		z.bc = z.bc&0xff00 | z.af>>8
+	case 0x50: // ld d,b
+		z.de = z.bc&0xff00 | z.de&0x00ff
+	case 0x51: // ld d,c
+		z.de = z.bc<<8 | z.de&0x00ff
+	case 0x52: // ld d,d
+		// basically nop since it doesn't affect flags
+	case 0x53: // ld d,e
+		z.de = z.de&0x00ff | z.de<<8
+	case 0x54: // ld d,h
+		z.de = z.hl&0xff00 | z.de&0x00ff
+	case 0x55: // ld d,l
+		z.de = z.hl<<8 | z.de&0x00ff
+	case 0x56: // ld d,(hl)
+		z.de = uint16(z.bus.Read(z.hl))<<8 | z.de&0x00ff
+	case 0x57: // ld d,a
+		z.de = z.af&0xff00 | z.de&0x00ff
+	case 0x58: // ld e,b
+		z.de = z.bc>>8 | z.de&0xff00
+	case 0x59: // ld e,c
+		z.de = z.bc&0x00ff | z.de&0xff00
+	case 0x5a: // ld e,d
+		z.de = z.de>>8 | z.de&0xff00
+	case 0x5b: // ld e,e
+		// basically nop since it doesn't affect flags
+	case 0x5c: // ld e,h
+		z.de = z.hl>>8 | z.de&0xff00
+	case 0x5d: // ld e,l
+		z.de = z.hl&0x00ff | z.de&0xff00
+	case 0x5e: // ld e,(hl)
+		z.de = uint16(z.bus.Read(z.hl)) | z.de&0xff00
+	case 0x5f: // ld e,a
+		z.de = z.af>>8 | z.de&0xff00
+	case 0x60: // ld h,b
+		z.hl = z.hl&0x00ff | z.bc&0xff00
+	case 0x61: // ld h,c
+		z.hl = z.hl&0x00ff | z.bc<<8
+	case 0x62: // ld h,d
+		z.hl = z.hl&0x00ff | z.de&0xff00
+	case 0x63: // ld h,e
+		z.hl = z.hl&0x00ff | z.de<<8
+	case 0x64: // ld h,h
+		// basically nop since it doesn't affect flags
+	case 0x65: // ld h,l
+		z.hl = z.hl&0x00ff | z.hl<<8
+	case 0x66: // ld h,(hl)
+		z.hl = uint16(z.bus.Read(z.hl))<<8 | z.hl&0x00ff
+	case 0x67: // ld h,a
+		z.hl = z.hl&0x00ff | z.af&0xff00
+	case 0x68: // ld l,b
+		z.hl = z.hl&0xff00 | z.bc>>8
+	case 0x69: // ld l,c
+		z.hl = z.hl&0xff00 | z.bc&0x00ff
+	case 0x6a: // ld l,d
+		z.hl = z.hl&0xff00 | z.de>>8
+	case 0x6b: // ld l,e
+		z.hl = z.hl&0xff00 | z.de&0x00ff
+	case 0x6c: // ld l,h
+		z.hl = z.hl>>8 | z.hl&0xff00
+	case 0x6d: // ld l,l
+		// basically nop since it doesn't affect flags
+	case 0x6e: // ld l,(hl)
+		z.hl = uint16(z.bus.Read(z.hl)) | z.hl&0xff00
+	case 0x6f: // ld l,a
+		z.hl = z.hl&0xff00 | z.af>>8
+	case 0x70: // ld (hl),b
+		z.bus.Write(z.hl, byte(z.bc>>8))
+	case 0x71: // ld (hl),c
+		z.bus.Write(z.hl, byte(z.bc))
+	case 0x72: // ld (hl),d
+		z.bus.Write(z.hl, byte(z.de>>8))
+	case 0x73: // ld (hl),e
+		z.bus.Write(z.hl, byte(z.de))
+	case 0x74: // ld (hl),h
+		z.bus.Write(z.hl, byte(z.hl>>8))
+	case 0x75: // ld (hl),l
+		z.bus.Write(z.hl, byte(z.hl))
 	case 0x76: // halt
 		z.totalCycles += opcodeStruct.noCycles
 		return ErrHalt
+	case 0x77: // ld (hl),a
+		z.bus.Write(z.hl, byte(z.af>>8))
 	case 0x78: // ld a,b
 		z.af = z.af&0x00ff | z.bc&0xff00
+	case 0x79: // ld a,c
+		z.af = z.af&0x00ff | z.bc<<8
+	case 0x7a: // ld a,d
+		z.af = z.af&0x00ff | z.de&0xff00
+	case 0x7b: // ld a,e
+		z.af = z.af&0x00ff | z.de<<8
+	case 0x7c: // ld a,h
+		z.af = z.af&0x00ff | z.hl&0xff00
+	case 0x7d: // ld a,l
+		z.af = z.af&0x00ff | z.hl<<8
+	case 0x7e: // ld a,(hl)
+		z.af = uint16(z.bus.Read(z.hl))<<8 | z.af&0x00ff
 	case 0x7f: // ld a,a
 		// basically nop since it doesn't affect flags
 	case 0xbf: // cp a
+		// XXX this is all kinds of broken XXX
 		// XXX the flags are not obvious from the doco at all.
 		// Condition Bits Affected
 		// S is set if result is negative; otherwise, it is reset.
@@ -333,6 +494,19 @@ func (z *z80) Step() error {
 		}
 	case 0xd3: // out (n), a
 		z.bus.IOWrite(z.bus.Read(z.pc+1), byte(z.af>>8))
+	case 0xdd: // z80 only
+		switch z.bus.Read(z.pc + 1) {
+		case 0x23: // inc ix
+			opcodeStruct = &opcodesDD[0x23]
+			z.ix += 1
+		// Condition bits are no affected
+		case 0x2b: // dec ix
+			opcodeStruct = &opcodesDD[0x2b]
+			z.ix -= 1
+		// Condition bits are no affected
+		default:
+			return ErrInvalidInstruction
+		}
 	case 0xeb: // ex de,hl
 		t := z.hl
 		z.hl = z.de
@@ -365,6 +539,19 @@ func (z *z80) Step() error {
 			} else {
 				z.af &^= carry
 			}
+		default:
+			return ErrInvalidInstruction
+		}
+	case 0xfd: // z80 only
+		switch z.bus.Read(z.pc + 1) {
+		case 0x23: // inc iy
+			opcodeStruct = &opcodesFD[0x23]
+			z.iy += 1
+		// Condition bits are no affected
+		case 0x2b: // dec iy
+			opcodeStruct = &opcodesFD[0x2b]
+			z.iy -= 1
+		// Condition bits are no affected
 		default:
 			return ErrInvalidInstruction
 		}
@@ -401,8 +588,12 @@ func (z *z80) DisassembleComponents(address uint16) (opc string, dst string, src
 	o := &opcodes[z.bus.Read(address)]
 	if o.multiByte {
 		switch z.bus.Read(address) {
+		case 0xdd:
+			o = &opcodesDD[z.bus.Read(address+1)]
 		case 0xed:
 			o = &opcodesED[z.bus.Read(address+1)]
+		case 0xfd:
+			o = &opcodesFD[z.bus.Read(address+1)]
 		}
 	}
 	switch o.dst {
