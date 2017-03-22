@@ -34,7 +34,7 @@ const (
 	DeviceInvalid = iota
 	DeviceRAM
 	DeviceROM
-	DeviceSimpleConsole
+	DeviceSerialConsole
 	DeviceDummy
 )
 
@@ -71,7 +71,7 @@ func New(devices []Device) (*Bus, error) {
 			if err != nil {
 				return nil, err
 			}
-		case DeviceSimpleConsole:
+		case DeviceSerialConsole:
 			// Console device uses 2 ports
 			if int(d.Start)+d.Size+2 > IOMax {
 				return nil, ErrInvalidSize
@@ -147,6 +147,10 @@ func (b *Bus) Write(address uint16, data byte) {
 	b.memory[address] = data
 }
 
+func (b *Bus) IORead(address byte) byte {
+	x := b.io[address].(device.Device).Read(address - b.ioStart[address])
+	return x
+}
 func (b *Bus) IOWrite(address, data byte) {
 	b.io[address].(device.Device).Write(address-b.ioStart[address], data)
 }

@@ -14,9 +14,7 @@ import (
 //
 // Memory map
 // ROM	0x0000-0x0fff boot
-// RAM	0x1000-0xcfff working memory
-// ROM  0xe000-0xefff basic rom
-// RAM	0xf000-0xffff basic scratch space
+// RAM	0x1000-0xffff working memory
 //
 // IO space
 // 0x00	console status
@@ -38,9 +36,13 @@ func _main() error {
 	flag.Parse()
 
 	if *bootImage == "" {
+		// minimal rom
 		boot = []byte{
-			0x31, 0xc4, 0x07, // ld sp,$07c4
+			0x31, 0x00, 0xee, // ld sp,$e000
 			0xc3, 0x00, 0x10, // jp $1000
+		}
+		ram = []byte{
+			0x76, // halt
 		}
 	} else {
 		boot, err = ioutil.ReadFile(*bootImage)
@@ -49,13 +51,7 @@ func _main() error {
 		}
 	}
 
-	if *ramImage == "" {
-		ram = []byte{
-			0x3e, 'a', // ld a, 'a'
-			0xd3, 0x81, // out ($01), a
-			0x76, // halt
-		}
-	} else {
+	if *ramImage != "" {
 		ram, err = ioutil.ReadFile(*ramImage)
 		if err != nil {
 			return err
@@ -73,16 +69,16 @@ func _main() error {
 		{
 			Name:  "working memory",
 			Start: 0x1000,
-			Size:  0x1000,
+			Size:  0xe000,
 			Type:  bus.DeviceRAM,
 			Image: ram,
 		},
 		// I/O space
 		{
-			Name:  "console",
-			Start: 0x80, // 0x00 status 0x01 data
+			Name:  "serial console",
+			Start: 0x02, // 0x02 data 0x03 UART status
 			Size:  0x02,
-			Type:  bus.DeviceSimpleConsole,
+			Type:  bus.DeviceSerialConsole,
 		},
 	}
 	bus, err := bus.New(devices)
@@ -96,11 +92,14 @@ func _main() error {
 	}
 
 	trace, registers, err := cpu.Trace()
-	if err != nil && err != z80.ErrHalt {
-		return err
-	}
+
+	// print err later
 	for i, line := range trace {
 		fmt.Printf("%-25s%s\n", line, registers[i])
+	}
+
+	if err != nil && err != z80.ErrHalt {
+		fmt.Printf("%v", err)
 	}
 
 	return nil
