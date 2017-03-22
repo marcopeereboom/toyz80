@@ -58,6 +58,20 @@ var (
 			noBytes:  2,
 			noCycles: 10,
 		},
+		0xe1: opcode{
+			mnemonic: []string{"pop"},
+			dst:      register,
+			dstR:     []string{"ix"},
+			noBytes:  1,
+			noCycles: 14,
+		},
+		0xe5: opcode{
+			mnemonic: []string{"push"},
+			dst:      register,
+			dstR:     []string{"ix"},
+			noBytes:  2,
+			noCycles: 15,
+		},
 	}
 	opcodesFD = []opcode{
 		0x23: {
@@ -73,6 +87,20 @@ var (
 			dstR:     []string{"iy"},
 			noBytes:  2,
 			noCycles: 10,
+		},
+		0xe1: opcode{
+			mnemonic: []string{"pop"},
+			dst:      register,
+			dstR:     []string{"iy"},
+			noBytes:  1,
+			noCycles: 14,
+		},
+		0xe5: opcode{
+			mnemonic: []string{"push"},
+			dst:      register,
+			dstR:     []string{"iy"},
+			noBytes:  2,
+			noCycles: 15,
 		},
 	}
 )
@@ -175,8 +203,15 @@ var (
 
 		// 0x10
 		opcode{},
-		// 0x11
-		opcode{},
+		// 0x11 ld de,nn
+		opcode{
+			mnemonic: []string{"ld", "lxi"},
+			dst:      register,
+			dstR:     []string{"de", "d"},
+			src:      immediateExtended,
+			noBytes:  3,
+			noCycles: 10,
+		},
 		// 0x12 ld (de),a
 		opcode{
 			mnemonic: []string{"ld", "stax"},
@@ -255,8 +290,15 @@ var (
 
 		// 0x20
 		opcode{},
-		// 0x21
-		opcode{},
+		// 0x21 ld hl,nn
+		opcode{
+			mnemonic: []string{"ld", "lxi"},
+			dst:      register,
+			dstR:     []string{"hl", "h"},
+			src:      immediateExtended,
+			noBytes:  3,
+			noCycles: 10,
+		},
 		// 0x22
 		opcode{},
 		// 0x23 inc de
@@ -334,8 +376,15 @@ var (
 			noBytes:  3,
 			noCycles: 10,
 		},
-		// 0x32
-		opcode{},
+		// 0x32 ld (nn),a
+		opcode{
+			mnemonic: []string{"ld", "sta"},
+			dst:      immediateExtended,
+			src:      register,
+			srcR:     []string{"a", ""},
+			noBytes:  3,
+			noCycles: 13,
+		},
 		// 0x33 inc de
 		opcode{
 			mnemonic: []string{"inc", "inx"},
@@ -1124,8 +1173,14 @@ var (
 		opcode{},
 		// 0xa6
 		opcode{},
-		// 0xa7
-		opcode{},
+		// 0xa7 and a
+		opcode{
+			mnemonic: []string{"and", "ana"},
+			dst:      register,
+			dstR:     []string{"a", ""},
+			noBytes:  1,
+			noCycles: 4,
+		},
 		// 0xa8
 		opcode{},
 		// 0xa9
@@ -1174,18 +1229,25 @@ var (
 		// 0xbe
 		opcode{},
 		// 0xbf
-		opcode{
-			mnemonic: []string{"cp", "cmp"},
-			dst:      register,
-			dstR:     []string{"a", "a"},
-			noBytes:  1,
-			noCycles: 4,
-		},
+		opcode{},
+		//opcode{
+		//	mnemonic: []string{"cp", "cmp"},
+		//	dst:      register,
+		//	dstR:     []string{"a", "a"},
+		//	noBytes:  1,
+		//	noCycles: 4,
+		//},
 
 		// 0xc0
 		opcode{},
-		// 0xc1
-		opcode{},
+		// 0xc1 pop bc
+		opcode{
+			mnemonic: []string{"pop", "pop"},
+			dst:      register,
+			dstR:     []string{"bc", "b"},
+			noBytes:  1,
+			noCycles: 10,
+		},
 		// 0xc2
 		opcode{
 			mnemonic: []string{"jp", "jnz"},
@@ -1204,17 +1266,33 @@ var (
 		},
 		// 0xc4
 		opcode{},
-		// 0xc5
-		opcode{},
+		// 0xc5 push bc
+		opcode{
+			mnemonic: []string{"push", "push"},
+			dst:      register,
+			dstR:     []string{"bc", "b"},
+			noBytes:  1,
+			noCycles: 11,
+		},
 		// 0xc6
 		opcode{},
 		// 0xc7
 		opcode{},
-		// 0xc8
-		opcode{},
-		// 0xc9
-		opcode{},
-		// 0xca
+		// 0xc8 ret z
+		opcode{
+			mnemonic: []string{"ret", "rz"},
+			dst:      condition,
+			dstR:     []string{"z", ""},
+			noBytes:  1,
+			noCycles: 11,
+		},
+		// 0xc9 ret
+		opcode{
+			mnemonic: []string{"ret", "ret"},
+			noBytes:  1,
+			noCycles: 10,
+		},
+		// 0xca jp z,nn
 		opcode{
 			mnemonic: []string{"jp", "jz"},
 			dst:      condition,
@@ -1227,8 +1305,13 @@ var (
 		opcode{},
 		// 0xcc
 		opcode{},
-		// 0xcd
-		opcode{},
+		// 0xcd call nn
+		opcode{
+			mnemonic: []string{"call", "call"},
+			dst:      immediateExtended,
+			noBytes:  3,
+			noCycles: 17,
+		},
 		// 0xce
 		opcode{},
 		// 0xcf
@@ -1236,11 +1319,24 @@ var (
 
 		// 0xd0
 		opcode{},
-		// 0xd1
-		opcode{},
-		// 0xd2
-		opcode{},
-		// 0xd3
+		// 0xd1 pop de
+		opcode{
+			mnemonic: []string{"pop", "pop"},
+			dst:      register,
+			dstR:     []string{"de", "d"},
+			noBytes:  1,
+			noCycles: 10,
+		},
+		// 0xd2 jp nc,nn
+		opcode{
+			mnemonic: []string{"jp", "jnc"},
+			dst:      condition,
+			dstR:     []string{"nc", ""},
+			src:      immediateExtended,
+			noBytes:  3,
+			noCycles: 10,
+		},
+		// 0xd3 out (n),a
 		opcode{
 			mnemonic: []string{"out", "out"},
 			dst:      indirect,
@@ -1251,8 +1347,14 @@ var (
 		},
 		// 0xd4
 		opcode{},
-		// 0xd5
-		opcode{},
+		// 0xd5 push de
+		opcode{
+			mnemonic: []string{"push", "push"},
+			dst:      register,
+			dstR:     []string{"de", "d"},
+			noBytes:  1,
+			noCycles: 11,
+		},
 		// 0xd6
 		opcode{},
 		// 0xd7
@@ -1261,10 +1363,24 @@ var (
 		opcode{},
 		// 0xd9
 		opcode{},
-		// 0xda
-		opcode{},
-		// 0xdb
-		opcode{},
+		// 0xda jp c,nn
+		opcode{
+			mnemonic: []string{"jp", "jc"},
+			dst:      condition,
+			dstR:     []string{"c", ""},
+			src:      immediateExtended,
+			noBytes:  3,
+			noCycles: 10,
+		},
+		// 0xdb in a,(n)
+		opcode{
+			mnemonic: []string{"in", "in"},
+			dst:      register,
+			dstR:     []string{"a", ""},
+			src:      indirect,
+			noBytes:  2,
+			noCycles: 11,
+		},
 		// 0xdc
 		opcode{},
 		// 0xdd z80 multi byte
@@ -1278,26 +1394,63 @@ var (
 
 		// 0xe0
 		opcode{},
-		// 0xe1
-		opcode{},
-		// 0xe2
-		opcode{},
+		// 0xe1 pop hl
+		opcode{
+			mnemonic: []string{"pop", "pop"},
+			dst:      register,
+			dstR:     []string{"hl", "h"},
+			noBytes:  1,
+			noCycles: 10,
+		},
+		// 0xe2 jp po,nn
+		opcode{
+			mnemonic: []string{"jp", "jpo"},
+			dst:      condition,
+			dstR:     []string{"po", ""},
+			src:      immediateExtended,
+			noBytes:  3,
+			noCycles: 10,
+		},
 		// 0xe3
 		opcode{},
 		// 0xe4
 		opcode{},
-		// 0xe5
-		opcode{},
-		// 0xe6
-		opcode{},
+		// 0xe5 push hl
+		opcode{
+			mnemonic: []string{"push", "push"},
+			dst:      register,
+			dstR:     []string{"hl", "h"},
+			noBytes:  1,
+			noCycles: 11,
+		},
+		// 0xe6 and n
+		opcode{
+			mnemonic: []string{"and", "ani"},
+			dst:      immediate,
+			noBytes:  2,
+			noCycles: 7,
+		},
 		// 0xe7
 		opcode{},
 		// 0xe8
 		opcode{},
-		// 0xe9
-		opcode{},
-		// 0xea
-		opcode{},
+		// 0xe9 jp (hl)
+		opcode{
+			mnemonic: []string{"jp", "pchl"},
+			dst:      registerIndirect, // FUCK YOU ZILOG
+			dstR:     []string{"hl", ""},
+			noBytes:  3,
+			noCycles: 4,
+		},
+		// 0xea jp pe,nn
+		opcode{
+			mnemonic: []string{"jp", "jpe"},
+			dst:      condition,
+			dstR:     []string{"pe", ""},
+			src:      immediateExtended,
+			noBytes:  3,
+			noCycles: 10,
+		},
 		// 0xeb ex de,hl
 		opcode{
 			mnemonic: []string{"ex", "xchg"},
@@ -1321,16 +1474,35 @@ var (
 
 		// 0xf0
 		opcode{},
-		// 0xf1
-		opcode{},
-		// 0xf2
-		opcode{},
+		// 0xf1 pop af
+		opcode{
+			mnemonic: []string{"pop", "pop"},
+			dst:      register,
+			dstR:     []string{"af", "psw"},
+			noBytes:  1,
+			noCycles: 10,
+		},
+		// 0xf2 jp p,nn
+		opcode{
+			mnemonic: []string{"jp", "jp"},
+			dst:      condition,
+			dstR:     []string{"p", ""},
+			src:      immediateExtended,
+			noBytes:  3,
+			noCycles: 10,
+		},
 		// 0xf3
 		opcode{},
 		// 0xf4
 		opcode{},
 		// 0xf5
-		opcode{},
+		opcode{
+			mnemonic: []string{"push", "push"},
+			dst:      register,
+			dstR:     []string{"af", "psw"},
+			noBytes:  1,
+			noCycles: 11,
+		},
 		// 0xf6
 		opcode{},
 		// 0xf7
@@ -1339,8 +1511,15 @@ var (
 		opcode{},
 		// 0xf9
 		opcode{},
-		// 0xfa
-		opcode{},
+		// 0xfa jp m,nn
+		opcode{
+			mnemonic: []string{"jp", "jm"},
+			dst:      condition,
+			dstR:     []string{"m", ""},
+			src:      immediateExtended,
+			noBytes:  3,
+			noCycles: 10,
+		},
 		// 0xfb
 		opcode{},
 		// 0xfc
