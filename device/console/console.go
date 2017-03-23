@@ -3,6 +3,8 @@ package console
 import (
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
 
 	"github.com/marcopeereboom/toyz80/device"
 )
@@ -17,6 +19,7 @@ type Console struct {
 	address byte
 	status  byte
 	data    byte
+	dataC   chan byte
 	mode    byte
 
 	errorFlag bool
@@ -35,7 +38,7 @@ var (
 func (c *Console) Write(address, data byte) {
 	switch address {
 	case 0x00:
-		fmt.Printf("%v", data&0x7f)
+		fmt.Printf("%c", data&0x7f)
 	case 0x01:
 		if c.cold {
 			// We are in cold boot.  Receice Mode.
@@ -103,12 +106,30 @@ func (c *Console) Write(address, data byte) {
 	}
 }
 
+// Read is not reentrant.
 func (c *Console) Read(address byte) byte {
 	switch address {
 	case 0x00:
-		panic("console read data")
+		//panic("console read data")
+		if c.data != 0xff {
+			a := c.data
+			//fmt.Printf("read %02x  ", a)
+			c.data = 0xff
+			return a
+		}
+		return 0xff
 	case 0x01:
-		return 0x01 | 0x02 // TXRDY | RXRDY
+		var rv byte
+		select {
+		case c.data = <-c.dataC:
+			rv = 0x03
+		default:
+			rv = 0x01
+		}
+		//if c.data != 0xff {
+		//	return 0x03
+		//}
+		return rv //0x01 //| 0x02 // TXRDY | RXRDY
 	default:
 	}
 
@@ -116,8 +137,30 @@ func (c *Console) Read(address byte) byte {
 }
 
 func New() (interface{}, error) {
-	return &Console{
+	// disable input buffering
+	err := exec.Command("stty", "-f", "/dev/tty", "cbreak", "min", "1").Run()
+	if err != nil {
+		return nil, err
+	}
+	// do not display entered characters on the screen
+	err = exec.Command("stty", "-f", "/dev/tty", "-echo").Run()
+	if err != nil {
+		return nil, err
+	}
+
+	defer exec.Command("stty", "-f", "/dev/tty", "echo").Run()
+
+	c := &Console{
 		errorFlag: true,
 		cold:      true,
-	}, nil
+		dataC:     make(chan byte, 1),
+	}
+	go func() {
+		var b []byte = make([]byte, 1)
+		for {
+			os.Stdin.Read(b)
+			c.dataC <- b[0]
+		}
+	}()
+	return c, nil
 }
