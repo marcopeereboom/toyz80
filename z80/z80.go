@@ -154,52 +154,6 @@ func (z *z80) genericPostInstruction(o *opcode) {
 	z.pc += uint16(o.noBytes)
 }
 
-// inc8H adds 1 to the low byte of *p and sets the flags.
-func (z *z80) inc8L(p *uint16) {
-	oldB := byte(*p & 0x00ff)
-	newB := oldB + 1
-	*p = uint16(newB) | *p&0xff00
-	//Condition Bits Affected
-	//S is set if result is negative; otherwise, it is reset.
-	//Z is set if result is 0; otherwise, it is reset.
-	//H is set if carry from bit 3; otherwise, it is reset.
-	//P/V is set if r was 7Fh before operation; otherwise, it is reset.
-	//N is reset.
-	//C is not affected
-	z.evalS(newB)
-	z.evalZ(newB)
-	if oldB == 0x7f {
-		z.af |= parity
-	} else {
-		z.af &^= parity
-	}
-	z.evalH(oldB, 1)
-	z.af &^= addsub
-}
-
-// inc8H adds 1 to the high byte of *p and sets the flags.
-func (z *z80) inc8H(p *uint16) {
-	oldB := byte(*p >> 8)
-	newB := oldB + 1
-	*p = uint16(newB)<<8 | *p&0x00ff
-	//Condition Bits Affected
-	//S is set if result is negative; otherwise, it is reset.
-	//Z is set if result is 0; otherwise, it is reset.
-	//H is set if carry from bit 3; otherwise, it is reset.
-	//P/V is set if r was 7Fh before operation; otherwise, it is reset.
-	//N is reset.
-	//C is not affected
-	z.evalS(newB)
-	z.evalZ(newB)
-	if oldB == 0x7f {
-		z.af |= parity
-	} else {
-		z.af &^= parity
-	}
-	z.evalH(oldB, 1)
-	z.af &^= addsub
-}
-
 // Step executes the instruction as pointed at by PC.
 func (z *z80) Step() error {
 	// This is a little messy because of multi-byte opcodes.  We assume the
@@ -224,7 +178,7 @@ func (z *z80) Step() error {
 	case 0x03: //inc bc
 		z.bc += 1
 	case 0x04: //inc b
-		z.inc8H(&z.bc)
+		z.bc = uint16(z.inc(byte(z.bc>>8)))<<8 | z.bc&0x00ff
 	case 0x06: // ld b,n
 		z.bc = uint16(z.bus.Read(z.pc+1))<<8 | z.bc&0x00ff
 	case 0x0a: // ld a,(bc)
@@ -323,7 +277,7 @@ func (z *z80) Step() error {
 	case 0x3b: //dec sp
 		z.sp -= 1
 	case 0x3c: // inc a
-		z.inc8L(&z.af)
+		z.af = uint16(z.inc(byte(z.af>>8)))<<8 | z.af&0x00ff
 	case 0x3e: // ld a,n
 		z.af = uint16(z.bus.Read(z.pc+1))<<8 | z.af&0x00ff
 	case 0x40: //ld b,b
@@ -456,30 +410,9 @@ func (z *z80) Step() error {
 	case 0x7f: // ld a,a
 		// nothing to do
 	case 0xa7: // and a
-		a := byte(z.af >> 8)
-		z.evalS(a)
-		z.evalZ(a)
-		z.af |= halfCarry
-		// PV
-		z.af &^= addsub
-		z.af &^= carry
+		z.and(byte(z.af >> 8))
 	case 0xbf: // cp a
-		// XXX this is all kinds of broken XXX
-		// XXX the flags are not obvious from the doco at all.
-		// Condition Bits Affected
-		// S is set if result is negative; otherwise, it is reset.
-		// Z is set if result is 0; otherwise, it is reset.
-		// H is set if borrow from bit 4; otherwise, it is reset.
-		// P/V is set if overflow; otherwise, it is reset.
-		// N is set.
-		// C is set if borrow; otherwise, it is reset.
-		z.evalS(byte(z.af >> 8))
-		z.evalZ(byte(z.af >> 8))
-		// XXX figure out H
-		// XXX figure out P
-		z.af |= addsub
-		// XXX figure out C
-
+		z.cp(byte(z.af >> 8))
 	case 0xc1: // pop bc
 		z.bc = uint16(z.bus.Read(z.sp)) | z.bc&0xff00
 		z.sp++
@@ -605,15 +538,8 @@ func (z *z80) Step() error {
 		z.bus.Write(z.sp, byte(z.hl>>8))
 		z.sp--
 		z.bus.Write(z.sp, byte(z.hl))
-	case 0xe6:
-		a := z.bus.Read(z.pc+1) & byte(z.af>>8)
-		z.af = uint16(a)<<8 | z.af&0x00ff
-		z.evalS(a)
-		z.evalZ(a)
-		z.af |= halfCarry
-		// PV
-		z.af &^= addsub
-		z.af &^= carry
+	case 0xe6: // and n
+		z.and(z.bus.Read(z.pc + 1))
 	case 0xe9: // jp (hl)
 		// but we don't dereference, *sigh* zilog
 		z.pc = z.hl
@@ -707,6 +633,8 @@ func (z *z80) Step() error {
 		default:
 			return ErrInvalidInstruction
 		}
+	case 0xfe: // cp i
+		z.cp(z.bus.Read(z.pc + 1))
 	default:
 		//fmt.Printf("opcode %x\n", opcode)
 		//return ErrInvalidInstruction

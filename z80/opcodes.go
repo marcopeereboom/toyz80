@@ -1529,7 +1529,13 @@ var (
 			multiByte: true,
 		},
 		// 0xfe
-		opcode{},
+		opcode{
+			mnemonic: []string{"cp", "cmp"},
+			dst:      immediate,
+			noBytes:  2,
+			noCycles: 7,
+		},
+
 		// 0xff
 		opcode{},
 	}
