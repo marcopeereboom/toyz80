@@ -95,11 +95,11 @@ func _main() error {
 
 	// print err later
 	for i, line := range trace {
-		fmt.Printf("%-25s%s\n", line, registers[i])
+		fmt.Fprintf(os.Stderr, "%-25s%s\n", line, registers[i])
 	}
 
 	if err != nil && err != z80.ErrHalt {
-		fmt.Printf("%v", err)
+		fmt.Fprintf(os.Stderr, "%v", err)
 	}
 
 	return nil
