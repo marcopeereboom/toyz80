@@ -29,6 +29,8 @@ func _main() error {
 	var (
 		bootImage = flag.String("boot", "", "boot ROM image")
 		ramImage  = flag.String("ramimage", "", "main RAM image")
+		logFile   = flag.String("log", "stderr", "log trace")
+		traceFlag = flag.Bool("trace", false, "trace execution")
 		boot      []byte
 		ram       []byte
 		err       error
@@ -53,6 +55,16 @@ func _main() error {
 
 	if *ramImage != "" {
 		ram, err = ioutil.ReadFile(*ramImage)
+		if err != nil {
+			return err
+		}
+	}
+
+	trace := *traceFlag
+
+	f := os.Stderr
+	if *logFile != "stderr" {
+		f, err = os.Create(*logFile)
 		if err != nil {
 			return err
 		}
@@ -86,20 +98,30 @@ func _main() error {
 		return err
 	}
 
-	cpu, err := z80.New(z80.ModeZ80, bus)
+	z, err := z80.New(z80.ModeZ80, bus)
 	if err != nil {
 		return err
 	}
 
-	trace, registers, err := cpu.Trace()
+	var prefix string
+	for {
+		if trace {
+			s, pc, _, err := z.DisassemblePC(true)
+			if err != nil {
+				return err
+			}
+			prefix = fmt.Sprintf("%04x: %v", pc, s)
+		}
 
-	// print err later
-	for i, line := range trace {
-		fmt.Fprintf(os.Stderr, "%-25s%s\n", line, registers[i])
-	}
+		err := z.Step()
 
-	if err != nil && err != z80.ErrHalt {
-		fmt.Fprintf(os.Stderr, "%v", err)
+		if trace {
+			fmt.Fprintf(f, "%-35s%s\n", prefix, z.DumpRegisters())
+		}
+
+		if err != nil && err != z80.ErrHalt {
+			return err
+		}
 	}
 
 	return nil
