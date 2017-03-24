@@ -159,6 +159,10 @@ func New() (interface{}, error) {
 		var b []byte = make([]byte, 1)
 		for {
 			os.Stdin.Read(b)
+			// see if we need to translate \r to \n
+			if b[0] == 0x0a {
+				b[0] = 0x0d
+			}
 			c.dataC <- b[0]
 		}
 	}()
