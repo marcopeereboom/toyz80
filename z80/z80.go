@@ -523,7 +523,9 @@ func (z *z80) Step() error {
 		case 0x3f: // srl a
 			z.af = uint16(z.srl(byte(z.af>>8)))<<8 | z.af&0x00ff
 		default:
-			return ErrInvalidInstruction
+			return fmt.Errorf("invalid instruction: 0x%02x @ 0x%04x",
+				opc, z.pc)
+			//return ErrInvalidInstruction
 		}
 	case 0xcd: //call nn
 		retPC := z.pc + opcodeStruct.noBytes
@@ -584,7 +586,9 @@ func (z *z80) Step() error {
 			z.sp--
 			z.bus.Write(z.sp, byte(z.ix))
 		default:
-			return ErrInvalidInstruction
+			return fmt.Errorf("invalid instruction: 0x%02x @ 0x%04x",
+				opc, z.pc)
+			//return ErrInvalidInstruction
 		}
 	case 0xe1: // pop hl
 		z.hl = uint16(z.bus.Read(z.sp)) | z.hl&0xff00
@@ -651,7 +655,9 @@ func (z *z80) Step() error {
 				z.af &^= carry
 			}
 		default:
-			return ErrInvalidInstruction
+			return fmt.Errorf("invalid instruction: 0x%02x @ 0x%04x",
+				opc, z.pc)
+			//return ErrInvalidInstruction
 		}
 	case 0xf1: // pop af
 		z.af = uint16(z.bus.Read(z.sp)) | z.af&0xff00

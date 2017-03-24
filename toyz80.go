@@ -119,7 +119,7 @@ func _main() error {
 			fmt.Fprintf(f, "%-35s%s\n", prefix, z.DumpRegisters())
 		}
 
-		if err != nil && err != z80.ErrHalt {
+		if err != nil {
 			return err
 		}
 	}
