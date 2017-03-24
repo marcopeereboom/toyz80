@@ -214,8 +214,14 @@ var (
 			noBytes:  1,
 			noCycles: 4,
 		},
-		// 0x0d
-		opcode{},
+		// 0x0d dec c
+		opcode{
+			mnemonic: []string{"dec", "dcr"},
+			dst:      register,
+			dstR:     []string{"c", "c"},
+			noBytes:  1,
+			noCycles: 4,
+		},
 		// 0x0e ld c,n
 		opcode{
 			mnemonic: []string{"ld", "mvi"},
@@ -265,8 +271,14 @@ var (
 			noBytes:  1,
 			noCycles: 4,
 		},
-		// 0x15
-		opcode{},
+		// 0x15 dec d
+		opcode{
+			mnemonic: []string{"dec", "dcr"},
+			dst:      register,
+			dstR:     []string{"d", "d"},
+			noBytes:  1,
+			noCycles: 4,
+		},
 		// 0x16 ld d,n
 		opcode{
 			mnemonic: []string{"ld", "mvi"},
@@ -321,8 +333,14 @@ var (
 			noBytes:  1,
 			noCycles: 4,
 		},
-		// 0x1d
-		opcode{},
+		// 0x1d dec e
+		opcode{
+			mnemonic: []string{"dec", "dcr"},
+			dst:      register,
+			dstR:     []string{"e", "e"},
+			noBytes:  1,
+			noCycles: 4,
+		},
 		// 0x1e ld e,n
 		opcode{
 			mnemonic: []string{"ld", "mvi"},
@@ -371,8 +389,14 @@ var (
 			noBytes:  1,
 			noCycles: 4,
 		},
-		// 0x25
-		opcode{},
+		// 0x25 dec h
+		opcode{
+			mnemonic: []string{"dec", "dcr"},
+			dst:      register,
+			dstR:     []string{"h", "h"},
+			noBytes:  1,
+			noCycles: 4,
+		},
 		// 0x26 ld h,n
 		opcode{
 			mnemonic: []string{"ld", "mvi"},
@@ -420,8 +444,14 @@ var (
 			noBytes:  1,
 			noCycles: 4,
 		},
-		// 0x2d
-		opcode{},
+		// 0x2d dec l
+		opcode{
+			mnemonic: []string{"dec", "dcr"},
+			dst:      register,
+			dstR:     []string{"l", "l"},
+			noBytes:  1,
+			noCycles: 4,
+		},
 		// 0x2e ld l,n
 		opcode{
 			mnemonic: []string{"ld", "mvi"},
@@ -466,7 +496,7 @@ var (
 			noBytes:  1,
 			noCycles: 6,
 		},
-		// 0x34
+		// 0x34 inc (hl)
 		opcode{
 			mnemonic: []string{"inc", "inr"},
 			dst:      registerIndirect,
@@ -474,8 +504,14 @@ var (
 			noBytes:  1,
 			noCycles: 11,
 		},
-		// 0x35
-		opcode{},
+		// 0x35 dec (hl)
+		opcode{
+			mnemonic: []string{"dec", "dec"},
+			dst:      registerIndirect,
+			dstR:     []string{"hl", "m"},
+			noBytes:  1,
+			noCycles: 11,
+		},
 		// 0x36 ld (hl),n
 		opcode{
 			mnemonic: []string{"ld", "mov"},

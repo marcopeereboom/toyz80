@@ -8,9 +8,9 @@ import (
 )
 
 var (
-	ErrDisassemble        = errors.New("could not disassemble")
-	ErrHalt               = errors.New("halt")
-	ErrInvalidInstruction = errors.New("invalid instruction")
+	ErrDisassemble = errors.New("could not disassemble")
+	ErrHalt        = errors.New("halt")
+	//ErrInvalidInstruction = errors.New("invalid instruction")
 )
 
 type CPUMode int
@@ -523,8 +523,9 @@ func (z *z80) Step() error {
 		case 0x3f: // srl a
 			z.af = uint16(z.srl(byte(z.af>>8)))<<8 | z.af&0x00ff
 		default:
-			return fmt.Errorf("invalid instruction: 0x%02x @ 0x%04x",
-				opc, z.pc)
+			return fmt.Errorf("invalid instruction: 0x%02x "+
+				"0x%02x @ 0x%04x", opc, z.bus.Read(z.pc+1),
+				z.pc)
 			//return ErrInvalidInstruction
 		}
 	case 0xcd: //call nn
@@ -586,8 +587,9 @@ func (z *z80) Step() error {
 			z.sp--
 			z.bus.Write(z.sp, byte(z.ix))
 		default:
-			return fmt.Errorf("invalid instruction: 0x%02x @ 0x%04x",
-				opc, z.pc)
+			return fmt.Errorf("invalid instruction: 0x%02x "+
+				"0x%02x @ 0x%04x", opc, z.bus.Read(z.pc+1),
+				z.pc)
 			//return ErrInvalidInstruction
 		}
 	case 0xe1: // pop hl
@@ -655,8 +657,9 @@ func (z *z80) Step() error {
 				z.af &^= carry
 			}
 		default:
-			return fmt.Errorf("invalid instruction: 0x%02x @ 0x%04x",
-				opc, z.pc)
+			return fmt.Errorf("invalid instruction: 0x%02x "+
+				"0x%02x @ 0x%04x", opc, z.bus.Read(z.pc+1),
+				z.pc)
 			//return ErrInvalidInstruction
 		}
 	case 0xf1: // pop af
@@ -704,7 +707,10 @@ func (z *z80) Step() error {
 			z.sp--
 			z.bus.Write(z.sp, byte(z.iy))
 		default:
-			return ErrInvalidInstruction
+			return fmt.Errorf("invalid instruction: 0x%02x "+
+				"0x%02x @ 0x%04x", opc, z.bus.Read(z.pc+1),
+				z.pc)
+			//return ErrInvalidInstruction
 		}
 	case 0xfe: // cp i
 		z.cp(z.bus.Read(z.pc + 1))
