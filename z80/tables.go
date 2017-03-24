@@ -87,7 +87,7 @@ func (z *z80) cp(val byte) {
 func (z *z80) dec(val byte) byte {
 	f := ternB((val&0x0f) != 0, 0, FLAG_H) | FLAG_N
 	val--
-	z.af = uint16(f) | uint16(ternB(val == 0x7f, FLAG_V, 0)|sz53Table[val])
+	z.af = z.af&0xff00 | uint16(f) | uint16(ternB(val == 0x7f, FLAG_V, 0)|sz53Table[val])
 	return val
 }
 
