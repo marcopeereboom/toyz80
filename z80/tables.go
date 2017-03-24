@@ -53,6 +53,21 @@ var overflowSubTable = []byte{0, FLAG_V, 0, 0, 0, 0, FLAG_V, 0}
 
 var sz53Table, sz53pTable, parityTable [0x100]byte
 
+func (z *z80) add16(value1, value2 uint16) uint16 {
+	t := uint(value1) + uint(value2)
+	lookup := byte(((value1 & 0x0800) >> 11) | ((value2 & 0x0800) >> 10) |
+		(uint16(t)&0x0800)>>9)
+	z.af = z.af&0xff00 | uint16(ternB((t&0x10000) != 0, FLAG_C, 0)|
+		(byte(t>>8)&(FLAG_3|FLAG_5))|halfcarryAddTable[lookup])
+	return uint16(t)
+	//var add16temp uint = uint(value1.get()) + uint(value2)
+	//var lookup byte = byte(((value1.get() & 0x0800) >> 11) | ((value2 & 0x0800) >> 10) | (uint16(add16temp)&0x0800)>>9)
+
+	//value1.set(uint16(add16temp))
+
+	//z80.F = (z80.F & (FLAG_V | FLAG_Z | FLAG_S)) | ternOpB((add16temp&0x10000) != 0, FLAG_C, 0) | (byte(add16temp>>8) & (FLAG_3 | FLAG_5)) | halfcarryAddTable[lookup]
+}
+
 func (z *z80) and(val byte) {
 	a := byte(z.af>>8) & val
 	z.af = uint16(a)<<8 | halfCarry | uint16(sz53pTable[a])
@@ -69,11 +84,37 @@ func (z *z80) cp(val byte) {
 	z.af = z.af&0xff00 | uint16(f)
 }
 
+func (z *z80) dec(val byte) byte {
+	f := ternB((val&0x0f) != 0, 0, FLAG_H) | FLAG_N
+	val--
+	z.af = uint16(f) | uint16(ternB(val == 0x7f, FLAG_V, 0)|sz53Table[val])
+	return val
+}
+
 func (z *z80) inc(val byte) byte {
 	val++
 	f := (byte(z.af) & FLAG_C) | ternB(val == 0x80, FLAG_V, 0) |
 		ternB((val&0x0f) != 0, 0, FLAG_H) | sz53Table[(val)]
 	z.af = z.af&0xff00 | uint16(f)
+	return val
+}
+
+func (z *z80) or(val byte) {
+	a := byte(z.af>>8) | val
+	z.af = uint16(a)<<8 | uint16(sz53pTable[a])
+}
+
+func (z *z80) sla(val byte) byte {
+	f := val >> 7
+	val <<= 1
+	z.af = z.af&0xff00 | uint16(f) | uint16(sz53pTable[val])
+	return val
+}
+
+func (z *z80) srl(val byte) byte {
+	f := val & FLAG_C
+	val >>= 1
+	z.af = uint16(f) | uint16(sz53pTable[val])
 	return val
 }
 

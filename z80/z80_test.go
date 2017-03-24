@@ -1,6 +1,8 @@
 package z80
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/marcopeereboom/toyz80/bus"
@@ -9,7 +11,7 @@ import (
 func TestInstructions(t *testing.T) {
 	tests := []struct {
 		name       string
-		opc        string
+		mn         string
 		dst        string
 		src        string
 		data       []byte
@@ -21,14 +23,14 @@ func TestInstructions(t *testing.T) {
 		// 0x00
 		{
 			name:   "nop",
-			opc:    "nop",
+			mn:     "nop",
 			data:   []byte{0x00},
 			expect: func(z *z80) bool { return z.pc == 0x0001 },
 		},
 		// 0x01
 		{
 			name: "ld bc,nn",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "bc",
 			src:  "$55aa",
 			data: []byte{0x01, 0xaa, 0x55},
@@ -38,7 +40,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "ld bc,nn",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "bc",
 			src:  "$ffff",
 			data: []byte{0x01, 0xff, 0xff},
@@ -50,7 +52,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld (bc),a",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "(bc)",
 			src:  "a",
 			data: []byte{0x02},
@@ -63,7 +65,7 @@ func TestInstructions(t *testing.T) {
 		// 0x03
 		{
 			name: "inc bc",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "bc",
 			src:  "",
 			data: []byte{0x03},
@@ -74,7 +76,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc bc == -1",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "bc",
 			src:  "",
 			data: []byte{0x03},
@@ -85,7 +87,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc bc == 0x7fff",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "bc",
 			src:  "",
 			data: []byte{0x03},
@@ -97,7 +99,7 @@ func TestInstructions(t *testing.T) {
 		// 0x04
 		{
 			name: "inc b",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "b",
 			src:  "",
 			data: []byte{0x04},
@@ -111,7 +113,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc b == -1",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "b",
 			src:  "",
 			data: []byte{0x04},
@@ -126,7 +128,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc b == 0x7f",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "b",
 			src:  "",
 			data: []byte{0x04},
@@ -143,7 +145,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld b,n",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "b",
 			src:  "$55",
 			data: []byte{0x06, 0x55},
@@ -156,7 +158,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld a,(bc)",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "a",
 			src:  "(bc)",
 			data: []byte{0x0a},
@@ -172,7 +174,7 @@ func TestInstructions(t *testing.T) {
 		// 0x0b
 		{
 			name: "dec bc",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "bc",
 			src:  "",
 			data: []byte{0x0b},
@@ -183,7 +185,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "dec bc == 0",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "bc",
 			src:  "",
 			data: []byte{0x0b},
@@ -193,7 +195,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "dec bc == 0x8000",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "bc",
 			src:  "",
 			data: []byte{0x0b},
@@ -202,11 +204,56 @@ func TestInstructions(t *testing.T) {
 				return z.pc == 0x0001 && z.bc == 0x7fff
 			},
 		},
+		// 0x0c
+		{
+			name: "inc c",
+			mn:   "inc",
+			dst:  "c",
+			src:  "",
+			data: []byte{0x0c},
+			init: func(z *z80) { z.bc = 0xa511 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.bc == 0xa512 &&
+					z.af&sign == 0 && z.af&zero == 0 &&
+					z.af&parity == 0 && z.af&halfCarry == 0 &&
+					z.af&addsub == 0
+			},
+		},
+		{
+			name: "inc c == -1",
+			mn:   "inc",
+			dst:  "c",
+			src:  "",
+			data: []byte{0x0c},
+			init: func(z *z80) { z.bc = 0xa5ff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.bc == 0xa500 &&
+					z.af&sign == 0 && z.af&zero == zero &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0
+			},
+		},
+		{
+			name: "inc c == 0x7f",
+			mn:   "inc",
+			dst:  "c",
+			src:  "",
+			data: []byte{0x0c},
+			init: func(z *z80) { z.bc = 0xa57f },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.bc == 0xa580 &&
+					z.af&sign == sign && z.af&zero == 0 &&
+					z.af&parity == parity &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0
+			},
+		},
 		// 0x0e
 		{
 
 			name: "ld c,n",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "c",
 			src:  "$55",
 			data: []byte{0x0e, 0x55},
@@ -219,7 +266,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld de,nn",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "de",
 			src:  "$55aa",
 			data: []byte{0x11, 0xaa, 0x55},
@@ -231,7 +278,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld (de),a",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "(de)",
 			src:  "a",
 			data: []byte{0x12},
@@ -244,7 +291,7 @@ func TestInstructions(t *testing.T) {
 		// 0x13
 		{
 			name: "inc de",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "de",
 			src:  "",
 			data: []byte{0x13},
@@ -255,7 +302,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc de == -1",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "de",
 			src:  "",
 			data: []byte{0x13},
@@ -266,7 +313,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc de == 0x7fff",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "de",
 			src:  "",
 			data: []byte{0x13},
@@ -275,11 +322,56 @@ func TestInstructions(t *testing.T) {
 				return z.pc == 0x0001 && z.de == 0x8000
 			},
 		},
+		// 0x14
+		{
+			name: "inc d",
+			mn:   "inc",
+			dst:  "d",
+			src:  "",
+			data: []byte{0x14},
+			init: func(z *z80) { z.de = 0x11a5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.de == 0x12a5 &&
+					z.af&sign == 0 && z.af&zero == 0 &&
+					z.af&parity == 0 && z.af&halfCarry == 0 &&
+					z.af&addsub == 0
+			},
+		},
+		{
+			name: "inc d == -1",
+			mn:   "inc",
+			dst:  "d",
+			src:  "",
+			data: []byte{0x14},
+			init: func(z *z80) { z.de = 0xffa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.de == 0x00a5 &&
+					z.af&sign == 0 && z.af&zero == zero &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0
+			},
+		},
+		{
+			name: "inc d == 0x7f",
+			mn:   "inc",
+			dst:  "d",
+			src:  "",
+			data: []byte{0x14},
+			init: func(z *z80) { z.de = 0x7fa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.de == 0x80a5 &&
+					z.af&sign == sign && z.af&zero == 0 &&
+					z.af&parity == parity &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0
+			},
+		},
 		// 0x16
 		{
 
 			name: "ld d,n",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "d",
 			src:  "$55",
 			data: []byte{0x16, 0x55},
@@ -291,7 +383,7 @@ func TestInstructions(t *testing.T) {
 		// 0x18
 		{
 			name: "jr positive",
-			opc:  "jr",
+			mn:   "jr",
 			dst:  "$0005",
 			data: []byte{0x18, 0x03},
 			expect: func(z *z80) bool {
@@ -301,7 +393,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "jr negative",
-			opc:  "jr",
+			mn:   "jr",
 			dst:  "$ffff",
 			data: []byte{0x18, 0xfd},
 			expect: func(z *z80) bool {
@@ -313,7 +405,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld a,(de)",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "a",
 			src:  "(de)",
 			data: []byte{0x1a},
@@ -329,7 +421,7 @@ func TestInstructions(t *testing.T) {
 		// 0x1b
 		{
 			name: "dec de",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "de",
 			src:  "",
 			data: []byte{0x1b},
@@ -340,7 +432,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "dec de == 0",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "de",
 			src:  "",
 			data: []byte{0x1b},
@@ -350,7 +442,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "dec de == 0x8000",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "de",
 			src:  "",
 			data: []byte{0x1b},
@@ -359,11 +451,56 @@ func TestInstructions(t *testing.T) {
 				return z.pc == 0x0001 && z.de == 0x7fff
 			},
 		},
+		// 0x1c
+		{
+			name: "inc e",
+			mn:   "inc",
+			dst:  "e",
+			src:  "",
+			data: []byte{0x1c},
+			init: func(z *z80) { z.de = 0xa511 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.de == 0xa512 &&
+					z.af&sign == 0 && z.af&zero == 0 &&
+					z.af&parity == 0 && z.af&halfCarry == 0 &&
+					z.af&addsub == 0
+			},
+		},
+		{
+			name: "inc e == -1",
+			mn:   "inc",
+			dst:  "e",
+			src:  "",
+			data: []byte{0x1c},
+			init: func(z *z80) { z.de = 0xa5ff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.de == 0xa500 &&
+					z.af&sign == 0 && z.af&zero == zero &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0
+			},
+		},
+		{
+			name: "inc e == 0x7f",
+			mn:   "inc",
+			dst:  "e",
+			src:  "",
+			data: []byte{0x1c},
+			init: func(z *z80) { z.de = 0xa57f },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.de == 0xa580 &&
+					z.af&sign == sign && z.af&zero == 0 &&
+					z.af&parity == parity &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0
+			},
+		},
 		// 0x1e
 		{
 
 			name: "ld e,n",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "e",
 			src:  "$55",
 			data: []byte{0x1e, 0x55},
@@ -376,7 +513,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld hl,nn",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "hl",
 			src:  "$55aa",
 			data: []byte{0x21, 0xaa, 0x55},
@@ -384,10 +521,26 @@ func TestInstructions(t *testing.T) {
 				return 0x55aa == z.hl && z.pc == 0x0003
 			},
 		},
+		// 0x22
+		{
+			name: "ld (nn),hl",
+			mn:   "ld",
+			dst:  "($b229)",
+			src:  "hl",
+			data: []byte{0x22, 0x29, 0xb2},
+			init: func(z *z80) {
+				z.hl = 0x483a
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0003 && z.hl == 0x483a &&
+					z.bus.Read(0xb229) == 0x3a &&
+					z.bus.Read(0xb22a) == 0x48
+			},
+		},
 		// 0x23
 		{
 			name: "inc hl",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "hl",
 			src:  "",
 			data: []byte{0x23},
@@ -398,7 +551,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc hl == -1",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "hl",
 			src:  "",
 			data: []byte{0x23},
@@ -409,7 +562,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc hl == 0x7fff",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "hl",
 			src:  "",
 			data: []byte{0x23},
@@ -418,11 +571,56 @@ func TestInstructions(t *testing.T) {
 				return z.pc == 0x0001 && z.hl == 0x8000
 			},
 		},
+		// 0x24
+		{
+			name: "inc h",
+			mn:   "inc",
+			dst:  "h",
+			src:  "",
+			data: []byte{0x24},
+			init: func(z *z80) { z.hl = 0x11a5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.hl == 0x12a5 &&
+					z.af&sign == 0 && z.af&zero == 0 &&
+					z.af&parity == 0 && z.af&halfCarry == 0 &&
+					z.af&addsub == 0
+			},
+		},
+		{
+			name: "inc h == -1",
+			mn:   "inc",
+			dst:  "h",
+			src:  "",
+			data: []byte{0x24},
+			init: func(z *z80) { z.hl = 0xffa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.hl == 0x00a5 &&
+					z.af&sign == 0 && z.af&zero == zero &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0
+			},
+		},
+		{
+			name: "inc h == 0x7f",
+			mn:   "inc",
+			dst:  "h",
+			src:  "",
+			data: []byte{0x24},
+			init: func(z *z80) { z.hl = 0x7fa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.hl == 0x80a5 &&
+					z.af&sign == sign && z.af&zero == 0 &&
+					z.af&parity == parity &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0
+			},
+		},
 		// 0x26
 		{
 
 			name: "ld h,n",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "h",
 			src:  "$55",
 			data: []byte{0x26, 0x55},
@@ -434,7 +632,7 @@ func TestInstructions(t *testing.T) {
 		// 0x28
 		{
 			name: "jr z,negative",
-			opc:  "jr",
+			mn:   "jr",
 			dst:  "z",
 			src:  "$ffff",
 			data: []byte{0x28, 0xfd},
@@ -446,7 +644,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "jr z,positive",
-			opc:  "jr",
+			mn:   "jr",
 			dst:  "z",
 			src:  "$0005",
 			data: []byte{0x28, 0x3},
@@ -458,7 +656,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "jr z,negative don't follow",
-			opc:  "jr",
+			mn:   "jr",
 			dst:  "z",
 			src:  "$ffff",
 			data: []byte{0x28, 0xfd},
@@ -469,7 +667,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "jr z,positive don't follow",
-			opc:  "jr",
+			mn:   "jr",
 			dst:  "z",
 			src:  "$0005",
 			data: []byte{0x28, 0x3},
@@ -478,10 +676,26 @@ func TestInstructions(t *testing.T) {
 			},
 			dontSkipPC: true,
 		},
+		// 0x2a
+		{
+			name: "ld hl,(nn)",
+			mn:   "ld",
+			dst:  "hl",
+			src:  "($4545)",
+			data: []byte{0x2a, 0x45, 0x45},
+			init: func(z *z80) {
+				z.hl = 0xa55a
+				z.bus.Write(0x4545, 0x37)
+				z.bus.Write(0x4546, 0xa1)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0003 && z.hl == 0xa137
+			},
+		},
 		// 0x2b
 		{
 			name: "dec hl",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "hl",
 			src:  "",
 			data: []byte{0x2b},
@@ -492,7 +706,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "dec hl == 0",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "hl",
 			src:  "",
 			data: []byte{0x2b},
@@ -502,7 +716,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "dec hl == 0x8000",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "hl",
 			src:  "",
 			data: []byte{0x2b},
@@ -511,11 +725,56 @@ func TestInstructions(t *testing.T) {
 				return z.pc == 0x0001 && z.hl == 0x7fff
 			},
 		},
+		// 0x2c
+		{
+			name: "inc l",
+			mn:   "inc",
+			dst:  "l",
+			src:  "",
+			data: []byte{0x2c},
+			init: func(z *z80) { z.hl = 0xa511 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.hl == 0xa512 &&
+					z.af&sign == 0 && z.af&zero == 0 &&
+					z.af&parity == 0 && z.af&halfCarry == 0 &&
+					z.af&addsub == 0
+			},
+		},
+		{
+			name: "inc l == -1",
+			mn:   "inc",
+			dst:  "l",
+			src:  "",
+			data: []byte{0x2c},
+			init: func(z *z80) { z.hl = 0xa5ff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.hl == 0xa500 &&
+					z.af&sign == 0 && z.af&zero == zero &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0
+			},
+		},
+		{
+			name: "inc l == 0x7f",
+			mn:   "inc",
+			dst:  "l",
+			src:  "",
+			data: []byte{0x2c},
+			init: func(z *z80) { z.hl = 0xa57f },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.hl == 0xa580 &&
+					z.af&sign == sign && z.af&zero == 0 &&
+					z.af&parity == parity &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0
+			},
+		},
 		// 0x2e
 		{
 
 			name: "ld l,n",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "l",
 			src:  "$55",
 			data: []byte{0x2e, 0x55},
@@ -528,7 +787,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "cpl",
-			opc:  "cpl",
+			mn:   "cpl",
 			data: []byte{0x2f},
 			init: func(z *z80) { z.af = 0xa500 },
 			expect: func(z *z80) bool {
@@ -541,7 +800,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld sp,nn",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "sp",
 			src:  "$55aa",
 			data: []byte{0x31, 0xaa, 0x55},
@@ -553,7 +812,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld (nn),a",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "$ffee",
 			src:  "a",
 			data: []byte{0x32, 0xee, 0xff},
@@ -569,7 +828,7 @@ func TestInstructions(t *testing.T) {
 		// 0x33
 		{
 			name: "inc sp",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "sp",
 			src:  "",
 			data: []byte{0x33},
@@ -580,7 +839,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc sp == -1",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "sp",
 			src:  "",
 			data: []byte{0x33},
@@ -591,7 +850,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc sp == 0x7fff",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "sp",
 			src:  "",
 			data: []byte{0x33},
@@ -600,11 +859,64 @@ func TestInstructions(t *testing.T) {
 				return z.pc == 0x0001 && z.sp == 0x8000
 			},
 		},
+		// 0x34
+		{
+
+			name: "inc (hl)",
+			mn:   "inc",
+			dst:  "(hl)",
+			data: []byte{0x34},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0x11)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.bus.Read(0x1122) == 0x12 &&
+					z.af&sign == 0 && z.af&zero == 0 &&
+					z.af&parity == 0 && z.af&halfCarry == 0 &&
+					z.af&addsub == 0
+			},
+		},
+		{
+			name: "inc (hl) == -1",
+			mn:   "inc",
+			dst:  "(hl)",
+			data: []byte{0x34},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0xff)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&sign == 0 && z.af&zero == zero &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0
+			},
+		},
+		{
+			name: "inc (hl) == 7f",
+			mn:   "inc",
+			dst:  "(hl)",
+			data: []byte{0x34},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0x7f)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&sign == sign && z.af&zero == 0 &&
+					z.af&parity == parity &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0
+			},
+		},
 		// 0x36
 		{
 
 			name: "ld (hl),n",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "(hl)",
 			src:  "$55",
 			data: []byte{0x36, 0x55},
@@ -621,7 +933,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "scf",
-			opc:  "scf",
+			mn:   "scf",
 			data: []byte{0x37},
 			init: func(z *z80) { z.af = 0xff00 },
 			expect: func(z *z80) bool {
@@ -634,7 +946,7 @@ func TestInstructions(t *testing.T) {
 		// 0x3b
 		{
 			name: "dec sp",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "sp",
 			src:  "",
 			data: []byte{0x3b},
@@ -645,7 +957,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "dec sp == 0",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "sp",
 			src:  "",
 			data: []byte{0x3b},
@@ -655,7 +967,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "dec sp == 0x8000",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "sp",
 			src:  "",
 			data: []byte{0x3b},
@@ -668,7 +980,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ccf (0xff)",
-			opc:  "ccf",
+			mn:   "ccf",
 			data: []byte{0x3f},
 			init: func(z *z80) { z.af = 0x00ff },
 			expect: func(z *z80) bool {
@@ -681,7 +993,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ccf (0x00)",
-			opc:  "ccf",
+			mn:   "ccf",
 			data: []byte{0x3f},
 			expect: func(z *z80) bool {
 				return z.pc == 0x0001 &&
@@ -694,7 +1006,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld a,nn",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "a",
 			src:  "($55aa)",
 			data: []byte{0x3a, 0xaa, 0x55},
@@ -710,7 +1022,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld a,n",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "a",
 			src:  "$55",
 			data: []byte{0x3e, 0x55},
@@ -722,7 +1034,7 @@ func TestInstructions(t *testing.T) {
 		// 0x40
 		{
 			name: "ld b,b",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "b",
 			src:  "b",
 			data: []byte{0x40},
@@ -734,7 +1046,7 @@ func TestInstructions(t *testing.T) {
 		// 0x41
 		{
 			name: "ld b,c",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "b",
 			src:  "c",
 			data: []byte{0x41},
@@ -746,7 +1058,7 @@ func TestInstructions(t *testing.T) {
 		// 0x42
 		{
 			name: "ld b,d",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "b",
 			src:  "d",
 			data: []byte{0x42},
@@ -758,7 +1070,7 @@ func TestInstructions(t *testing.T) {
 		// 0x43
 		{
 			name: "ld b,e",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "b",
 			src:  "e",
 			data: []byte{0x43},
@@ -770,7 +1082,7 @@ func TestInstructions(t *testing.T) {
 		// 0x44
 		{
 			name: "ld b,h",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "b",
 			src:  "h",
 			data: []byte{0x44},
@@ -782,7 +1094,7 @@ func TestInstructions(t *testing.T) {
 		// 0x45
 		{
 			name: "ld b,l",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "b",
 			src:  "l",
 			data: []byte{0x45},
@@ -795,7 +1107,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld b,(hl)",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "b",
 			src:  "(hl)",
 			data: []byte{0x46},
@@ -812,7 +1124,7 @@ func TestInstructions(t *testing.T) {
 		// 0x47
 		{
 			name: "ld b,a",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "b",
 			src:  "a",
 			data: []byte{0x47},
@@ -824,7 +1136,7 @@ func TestInstructions(t *testing.T) {
 		// 0x48
 		{
 			name: "ld c,b",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "c",
 			src:  "b",
 			data: []byte{0x48},
@@ -836,7 +1148,7 @@ func TestInstructions(t *testing.T) {
 		// 0x49
 		{
 			name: "ld c,c",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "c",
 			src:  "c",
 			data: []byte{0x49},
@@ -848,7 +1160,7 @@ func TestInstructions(t *testing.T) {
 		// 0x4a
 		{
 			name: "ld c,d",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "c",
 			src:  "d",
 			data: []byte{0x4a},
@@ -860,7 +1172,7 @@ func TestInstructions(t *testing.T) {
 		// 0x4b
 		{
 			name: "ld c,e",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "c",
 			src:  "e",
 			data: []byte{0x4b},
@@ -872,7 +1184,7 @@ func TestInstructions(t *testing.T) {
 		// 0x4c
 		{
 			name: "ld c,h",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "c",
 			src:  "h",
 			data: []byte{0x4c},
@@ -884,7 +1196,7 @@ func TestInstructions(t *testing.T) {
 		// 0x4d
 		{
 			name: "ld c,l",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "c",
 			src:  "l",
 			data: []byte{0x4d},
@@ -897,7 +1209,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld c,(hl)",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "c",
 			src:  "(hl)",
 			data: []byte{0x4e},
@@ -914,7 +1226,7 @@ func TestInstructions(t *testing.T) {
 		// 0x4f
 		{
 			name: "ld c,a",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "c",
 			src:  "a",
 			data: []byte{0x4f},
@@ -926,7 +1238,7 @@ func TestInstructions(t *testing.T) {
 		// 0x50
 		{
 			name: "ld d,b",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "d",
 			src:  "b",
 			data: []byte{0x50},
@@ -938,7 +1250,7 @@ func TestInstructions(t *testing.T) {
 		// 0x51
 		{
 			name: "ld d,c",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "d",
 			src:  "c",
 			data: []byte{0x51},
@@ -950,7 +1262,7 @@ func TestInstructions(t *testing.T) {
 		// 0x52
 		{
 			name: "ld d,d",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "d",
 			src:  "d",
 			data: []byte{0x52},
@@ -962,7 +1274,7 @@ func TestInstructions(t *testing.T) {
 		// 0x53
 		{
 			name: "ld d,e",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "d",
 			src:  "e",
 			data: []byte{0x53},
@@ -974,7 +1286,7 @@ func TestInstructions(t *testing.T) {
 		// 0x54
 		{
 			name: "ld d,h",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "d",
 			src:  "h",
 			data: []byte{0x54},
@@ -986,7 +1298,7 @@ func TestInstructions(t *testing.T) {
 		// 0x55
 		{
 			name: "ld d,l",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "d",
 			src:  "l",
 			data: []byte{0x55},
@@ -999,7 +1311,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld d,(hl)",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "d",
 			src:  "(hl)",
 			data: []byte{0x56},
@@ -1016,7 +1328,7 @@ func TestInstructions(t *testing.T) {
 		// 0x57
 		{
 			name: "ld d,a",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "d",
 			src:  "a",
 			data: []byte{0x57},
@@ -1028,7 +1340,7 @@ func TestInstructions(t *testing.T) {
 		// 0x58
 		{
 			name: "ld e,b",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "e",
 			src:  "b",
 			data: []byte{0x58},
@@ -1040,7 +1352,7 @@ func TestInstructions(t *testing.T) {
 		// 0x59
 		{
 			name: "ld e,c",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "e",
 			src:  "c",
 			data: []byte{0x59},
@@ -1052,7 +1364,7 @@ func TestInstructions(t *testing.T) {
 		// 0x5a
 		{
 			name: "ld e,d",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "e",
 			src:  "d",
 			data: []byte{0x5a},
@@ -1064,7 +1376,7 @@ func TestInstructions(t *testing.T) {
 		// 0x5b
 		{
 			name: "ld e,e",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "e",
 			src:  "e",
 			data: []byte{0x5b},
@@ -1076,7 +1388,7 @@ func TestInstructions(t *testing.T) {
 		// 0x5c
 		{
 			name: "ld e,h",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "e",
 			src:  "h",
 			data: []byte{0x5c},
@@ -1088,7 +1400,7 @@ func TestInstructions(t *testing.T) {
 		// 0x5d
 		{
 			name: "ld e,h",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "e",
 			src:  "l",
 			data: []byte{0x5d},
@@ -1101,7 +1413,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld e,(hl)",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "e",
 			src:  "(hl)",
 			data: []byte{0x5e},
@@ -1118,7 +1430,7 @@ func TestInstructions(t *testing.T) {
 		// 0x5f
 		{
 			name: "ld e,a",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "e",
 			src:  "a",
 			data: []byte{0x5f},
@@ -1130,7 +1442,7 @@ func TestInstructions(t *testing.T) {
 		// 0x60
 		{
 			name: "ld h,b",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "h",
 			src:  "b",
 			data: []byte{0x60},
@@ -1142,7 +1454,7 @@ func TestInstructions(t *testing.T) {
 		// 0x61
 		{
 			name: "ld h,c",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "h",
 			src:  "c",
 			data: []byte{0x61},
@@ -1154,7 +1466,7 @@ func TestInstructions(t *testing.T) {
 		// 0x62
 		{
 			name: "ld h,d",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "h",
 			src:  "d",
 			data: []byte{0x62},
@@ -1166,7 +1478,7 @@ func TestInstructions(t *testing.T) {
 		// 0x63
 		{
 			name: "ld h,e",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "h",
 			src:  "e",
 			data: []byte{0x63},
@@ -1178,7 +1490,7 @@ func TestInstructions(t *testing.T) {
 		// 0x64
 		{
 			name: "ld h,h",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "h",
 			src:  "h",
 			data: []byte{0x64},
@@ -1190,7 +1502,7 @@ func TestInstructions(t *testing.T) {
 		// 0x65
 		{
 			name: "ld h,l",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "h",
 			src:  "l",
 			data: []byte{0x65},
@@ -1203,7 +1515,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld h,(hl)",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "h",
 			src:  "(hl)",
 			data: []byte{0x66},
@@ -1219,7 +1531,7 @@ func TestInstructions(t *testing.T) {
 		// 0x67
 		{
 			name: "ld h,a",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "h",
 			src:  "a",
 			data: []byte{0x67},
@@ -1231,7 +1543,7 @@ func TestInstructions(t *testing.T) {
 		// 0x68
 		{
 			name: "ld l,b",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "l",
 			src:  "b",
 			data: []byte{0x68},
@@ -1243,7 +1555,7 @@ func TestInstructions(t *testing.T) {
 		// 0x69
 		{
 			name: "ld l,c",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "l",
 			src:  "c",
 			data: []byte{0x69},
@@ -1255,7 +1567,7 @@ func TestInstructions(t *testing.T) {
 		// 0x6a
 		{
 			name: "ld l,d",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "l",
 			src:  "d",
 			data: []byte{0x6a},
@@ -1267,7 +1579,7 @@ func TestInstructions(t *testing.T) {
 		// 0x6b
 		{
 			name: "ld l,e",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "l",
 			src:  "e",
 			data: []byte{0x6b},
@@ -1279,7 +1591,7 @@ func TestInstructions(t *testing.T) {
 		// 0x6c
 		{
 			name: "ld l,h",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "l",
 			src:  "h",
 			data: []byte{0x6c},
@@ -1291,7 +1603,7 @@ func TestInstructions(t *testing.T) {
 		// 0x6d
 		{
 			name: "ld l,l",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "l",
 			src:  "l",
 			data: []byte{0x6d},
@@ -1304,7 +1616,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld l,(hl)",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "l",
 			src:  "(hl)",
 			data: []byte{0x6e},
@@ -1320,7 +1632,7 @@ func TestInstructions(t *testing.T) {
 		// 0x6f
 		{
 			name: "ld l,a",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "l",
 			src:  "a",
 			data: []byte{0x6f},
@@ -1333,7 +1645,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld (hl),b",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "(hl)",
 			src:  "b",
 			data: []byte{0x70},
@@ -1350,7 +1662,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld (hl),c",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "(hl)",
 			src:  "c",
 			data: []byte{0x71},
@@ -1367,7 +1679,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld (hl),d",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "(hl)",
 			src:  "d",
 			data: []byte{0x72},
@@ -1384,7 +1696,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld (hl),e",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "(hl)",
 			src:  "e",
 			data: []byte{0x73},
@@ -1401,7 +1713,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld (hl),h",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "(hl)",
 			src:  "h",
 			data: []byte{0x74},
@@ -1417,7 +1729,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld (hl),l",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "(hl)",
 			src:  "l",
 			data: []byte{0x75},
@@ -1433,7 +1745,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "halt",
-			opc:  "halt",
+			mn:   "halt",
 			dst:  "",
 			src:  "",
 			data: []byte{0x76},
@@ -1447,7 +1759,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld (hl),a",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "(hl)",
 			src:  "a",
 			data: []byte{0x77},
@@ -1463,7 +1775,7 @@ func TestInstructions(t *testing.T) {
 		// 0x78
 		{
 			name: "ld a,b",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "a",
 			src:  "b",
 			data: []byte{0x78},
@@ -1475,7 +1787,7 @@ func TestInstructions(t *testing.T) {
 		// 0x79
 		{
 			name: "ld a,c",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "a",
 			src:  "c",
 			data: []byte{0x79},
@@ -1487,7 +1799,7 @@ func TestInstructions(t *testing.T) {
 		// 0x7a
 		{
 			name: "ld a,d",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "a",
 			src:  "d",
 			data: []byte{0x7a},
@@ -1499,7 +1811,7 @@ func TestInstructions(t *testing.T) {
 		// 0x7b
 		{
 			name: "ld a,e",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "a",
 			src:  "e",
 			data: []byte{0x7b},
@@ -1511,7 +1823,7 @@ func TestInstructions(t *testing.T) {
 		// 0x7c
 		{
 			name: "ld a,h",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "a",
 			src:  "h",
 			data: []byte{0x7c},
@@ -1523,7 +1835,7 @@ func TestInstructions(t *testing.T) {
 		// 0x7d
 		{
 			name: "ld a,l",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "a",
 			src:  "l",
 			data: []byte{0x7d},
@@ -1536,7 +1848,7 @@ func TestInstructions(t *testing.T) {
 		{
 
 			name: "ld a,(hl)",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "a",
 			src:  "(hl)",
 			data: []byte{0x7e},
@@ -1552,7 +1864,7 @@ func TestInstructions(t *testing.T) {
 		// 0x7f
 		{
 			name: "ld a,a",
-			opc:  "ld",
+			mn:   "ld",
 			dst:  "a",
 			src:  "a",
 			data: []byte{0x7f},
@@ -1564,7 +1876,7 @@ func TestInstructions(t *testing.T) {
 		// 0xa7
 		{
 			name: "and a",
-			opc:  "and",
+			mn:   "and",
 			dst:  "a",
 			data: []byte{0xa7},
 			init: func(z *z80) { z.af = 0xa500 },
@@ -1579,8 +1891,8 @@ func TestInstructions(t *testing.T) {
 			},
 		},
 		{
-			name: "and 0",
-			opc:  "and",
+			name: "and a 0",
+			mn:   "and",
 			dst:  "a",
 			data: []byte{0xa7},
 			init: func(z *z80) { z.af = 0x0000 },
@@ -1595,10 +1907,10 @@ func TestInstructions(t *testing.T) {
 			},
 		},
 		{
-			name: "and $7f",
-			opc:  "and",
+			name: "and a $7f",
+			mn:   "and",
 			dst:  "a",
-			data: []byte{0xa7, 0x7f},
+			data: []byte{0xa7},
 			init: func(z *z80) { z.af = 0xaf00 },
 			expect: func(z *z80) bool {
 				return z.pc == 0x0001 && z.af&0xff00 == 0xaf00 &&
@@ -1610,10 +1922,324 @@ func TestInstructions(t *testing.T) {
 					z.af&carry == 0
 			},
 		},
+		// 0xb0
+		{
+			name: "or b",
+			mn:   "or",
+			dst:  "b",
+			data: []byte{0xb0},
+			init: func(z *z80) { z.af = 0xa500; z.bc = 0xf0a5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xf500 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "or b == 0",
+			mn:   "or",
+			dst:  "b",
+			data: []byte{0x0b0},
+			init: func(z *z80) { z.af = 0xa500; z.bc = 0x00a5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xa500 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "or b 0 on 0",
+			mn:   "or",
+			dst:  "b",
+			data: []byte{0xb0},
+			init: func(z *z80) { z.af = 0x0000; z.bc = 0x005a },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "or b $7f",
+			mn:   "or",
+			dst:  "b",
+			data: []byte{0xb0},
+			init: func(z *z80) { z.af = 0x8500; z.bc = 0x7f5a },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xff00 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		// 0xb1
+		{
+			name: "or c",
+			mn:   "or",
+			dst:  "c",
+			data: []byte{0xb1},
+			init: func(z *z80) { z.af = 0xa500; z.bc = 0xa5f0 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xf500 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "or c == 0",
+			mn:   "or",
+			dst:  "c",
+			data: []byte{0x0b1},
+			init: func(z *z80) { z.af = 0xa500; z.bc = 0xa500 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xa500 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "or c 0 on 0",
+			mn:   "or",
+			dst:  "c",
+			data: []byte{0xb1},
+			init: func(z *z80) { z.af = 0x0000; z.bc = 0x5a00 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "or c $7f",
+			mn:   "or",
+			dst:  "c",
+			data: []byte{0xb1},
+			init: func(z *z80) { z.af = 0x8500; z.bc = 0x5a7f },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xff00 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		// 0xb2
+		{
+			name: "or d",
+			mn:   "or",
+			dst:  "d",
+			data: []byte{0xb2},
+			init: func(z *z80) { z.af = 0xa5ff; z.de = 0x5aff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xff00 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		// 0xb3
+		{
+			name: "or e",
+			mn:   "or",
+			dst:  "e",
+			data: []byte{0xb3},
+			init: func(z *z80) { z.af = 0xa5ff; z.de = 0xff5a },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xff00 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		// 0xb4
+		{
+			name: "or h",
+			mn:   "or",
+			dst:  "h",
+			data: []byte{0xb4},
+			init: func(z *z80) { z.af = 0xa5ff; z.hl = 0x5aff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xff00 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		// 0xb5
+		{
+			name: "or l",
+			mn:   "or",
+			dst:  "l",
+			data: []byte{0xb5},
+			init: func(z *z80) { z.af = 0xa5ff; z.hl = 0xff5a },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xff00 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		// 0xb6
+		{
+			name: "or (hl)",
+			mn:   "or",
+			dst:  "(hl)",
+			data: []byte{0xb6},
+			init: func(z *z80) {
+				z.af = 0xa5ff
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0x5a)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xff00 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		// 0xb7
+		{
+			name: "or a",
+			mn:   "or",
+			dst:  "a",
+			data: []byte{0xb7},
+			init: func(z *z80) { z.af = 0xa5ff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xa500 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		// 0xbe
+		{
+			name: "cp (hl) <",
+			mn:   "cp",
+			dst:  "(hl)",
+			data: []byte{0xbe},
+			init: func(z *z80) {
+				z.af = 0x1000
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0x20)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0x1000 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == addsub &&
+					z.af&carry == carry
+			},
+		},
+		{
+			name: "cp (hl) >",
+			mn:   "cp",
+			dst:  "(hl)",
+			data: []byte{0xbe},
+			init: func(z *z80) {
+				z.af = 0x2000
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0x10)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0x2000 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == addsub &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "cp (hl) =",
+			mn:   "cp",
+			dst:  "(hl)",
+			data: []byte{0xbe},
+			init: func(z *z80) {
+				z.af = 0x2000
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0x20)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0x2000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == addsub &&
+					z.af&carry == 0
+			},
+		},
+		// 0xbf
+		{
+			name: "cp a",
+			mn:   "cp",
+			dst:  "a",
+			data: []byte{0xbf},
+			init: func(z *z80) { z.af = 0xaf00 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 && z.af&0xff00 == 0xaf00 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == addsub &&
+					z.af&carry == 0
+			},
+		},
 		// 0xc1
 		{
 			name: "pop bc",
-			opc:  "pop",
+			mn:   "pop",
 			dst:  "bc",
 			src:  "",
 			data: []byte{0xc1},
@@ -1631,7 +2257,7 @@ func TestInstructions(t *testing.T) {
 		// 0xc2
 		{
 			name: "jp nz,nn (Z set)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "nz",
 			src:  "$1122",
 			data: []byte{0xc2, 0x22, 0x11},
@@ -1643,7 +2269,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "jp nz,nn (Z clear)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "nz",
 			src:  "$1122",
 			data: []byte{0xc2, 0x22, 0x11},
@@ -1655,7 +2281,7 @@ func TestInstructions(t *testing.T) {
 		// 0xc3
 		{
 			name: "jp nn",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "$1122",
 			src:  "",
 			data: []byte{0xc3, 0x22, 0x11},
@@ -1667,7 +2293,7 @@ func TestInstructions(t *testing.T) {
 		// 0xc5
 		{
 			name: "push bc",
-			opc:  "push",
+			mn:   "push",
 			dst:  "bc",
 			src:  "",
 			data: []byte{0xc5},
@@ -1681,7 +2307,7 @@ func TestInstructions(t *testing.T) {
 		// 0xc8
 		{
 			name: "ret z (Z set)",
-			opc:  "ret",
+			mn:   "ret",
 			dst:  "z",
 			data: []byte{0xc8},
 			init: func(z *z80) {
@@ -1697,7 +2323,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "ret z (Z clear)",
-			opc:  "ret",
+			mn:   "ret",
 			dst:  "z",
 			data: []byte{0xc8},
 			init: func(z *z80) {
@@ -1713,7 +2339,7 @@ func TestInstructions(t *testing.T) {
 		// 0xc9
 		{
 			name: "ret",
-			opc:  "ret",
+			mn:   "ret",
 			data: []byte{0xc9},
 			init: func(z *z80) {
 				z.sp = 0xaa55
@@ -1728,7 +2354,7 @@ func TestInstructions(t *testing.T) {
 		// 0xca
 		{
 			name: "jp z,nn (Z set)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "z",
 			src:  "$1122",
 			data: []byte{0xca, 0x22, 0x11},
@@ -1740,7 +2366,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "jp z,nn (Z clear)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "z",
 			src:  "$1122",
 			data: []byte{0xca, 0x22, 0x11},
@@ -1749,10 +2375,114 @@ func TestInstructions(t *testing.T) {
 			},
 			dontSkipPC: true,
 		},
+		// 0xcb 0x27
+		{
+			name: "sla a",
+			mn:   "sla",
+			dst:  "a",
+			data: []byte{0xcb, 0x27},
+			init: func(z *z80) { z.af = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&0xff00 == 0x2200 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "sla a = 0x80",
+			mn:   "sla",
+			dst:  "a",
+			data: []byte{0xcb, 0x27},
+			init: func(z *z80) { z.af = 0x8022 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		{
+			name: "sla a = 0xff",
+			mn:   "sla",
+			dst:  "a",
+			data: []byte{0xcb, 0x27},
+			init: func(z *z80) { z.af = 0xff22 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&0xff00 == 0xfe00 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		// 0xcb 0x3f
+		{
+			name: "srl a",
+			mn:   "srl",
+			dst:  "a",
+			data: []byte{0xcb, 0x3f},
+			init: func(z *z80) { z.af = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&0xff00 == 0x0800 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		{
+			name: "srl a = 0x80",
+			mn:   "srl",
+			dst:  "a",
+			data: []byte{0xcb, 0x3f},
+			init: func(z *z80) { z.af = 0x8022 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&0xff00 == 0x4000 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "srl a = 0xff",
+			mn:   "srl",
+			dst:  "a",
+			data: []byte{0xcb, 0x3f},
+			init: func(z *z80) { z.af = 0xff22 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&0xff00 == 0x7f00 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
 		// 0xcd
 		{
 			name: "call nn",
-			opc:  "call",
+			mn:   "call",
 			dst:  "$1122",
 			src:  "",
 			data: []byte{0xcd, 0x22, 0x11},
@@ -1767,7 +2497,7 @@ func TestInstructions(t *testing.T) {
 		// 0xd1
 		{
 			name: "pop de",
-			opc:  "pop",
+			mn:   "pop",
 			dst:  "de",
 			src:  "",
 			data: []byte{0xd1},
@@ -1785,7 +2515,7 @@ func TestInstructions(t *testing.T) {
 		// 0xd2
 		{
 			name: "jp nc,nn (C set)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "nc",
 			src:  "$1122",
 			data: []byte{0xd2, 0x22, 0x11},
@@ -1797,7 +2527,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "jp nc,nn (C clear)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "nc",
 			src:  "$1122",
 			data: []byte{0xd2, 0x22, 0x11},
@@ -1809,7 +2539,7 @@ func TestInstructions(t *testing.T) {
 		// 0xd3
 		{
 			name: "out (n),a",
-			opc:  "out",
+			mn:   "out",
 			dst:  "($aa)",
 			src:  "a",
 			data: []byte{0xd3, 0xaa},
@@ -1821,7 +2551,7 @@ func TestInstructions(t *testing.T) {
 		// 0xd5
 		{
 			name: "push de",
-			opc:  "push",
+			mn:   "push",
 			dst:  "de",
 			src:  "",
 			data: []byte{0xd5},
@@ -1835,7 +2565,7 @@ func TestInstructions(t *testing.T) {
 		// 0xda
 		{
 			name: "jp c,nn (C set)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "c",
 			src:  "$1122",
 			data: []byte{0xda, 0x22, 0x11},
@@ -1847,7 +2577,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "jp c,nn (C clear)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "c",
 			src:  "$1122",
 			data: []byte{0xda, 0x22, 0x11},
@@ -1859,7 +2589,7 @@ func TestInstructions(t *testing.T) {
 		// 0xdb
 		{
 			name: "in a,(n)",
-			opc:  "in",
+			mn:   "in",
 			dst:  "a",
 			src:  "($aa)",
 			data: []byte{0xdb, 0xaa},
@@ -1871,7 +2601,7 @@ func TestInstructions(t *testing.T) {
 		// 0xdd 0x23
 		{
 			name: "inc ix",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "ix",
 			src:  "",
 			data: []byte{0xdd, 0x23},
@@ -1882,7 +2612,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc ix == -1",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "ix",
 			src:  "",
 			data: []byte{0xdd, 0x23},
@@ -1893,7 +2623,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc ix == 0x7fff",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "ix",
 			src:  "",
 			data: []byte{0xdd, 0x23},
@@ -1905,7 +2635,7 @@ func TestInstructions(t *testing.T) {
 		// 0xdd 0x2b
 		{
 			name: "dec ix",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "ix",
 			src:  "",
 			data: []byte{0xdd, 0x2b},
@@ -1916,7 +2646,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "dec ix == 0",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "ix",
 			src:  "",
 			data: []byte{0xdd, 0x2b},
@@ -1926,7 +2656,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "dec ix == 0x8000",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "ix",
 			src:  "",
 			data: []byte{0xdd, 0x2b},
@@ -1935,10 +2665,10 @@ func TestInstructions(t *testing.T) {
 				return z.pc == 0x0002 && z.ix == 0x7fff
 			},
 		},
-		// 0xdd e1
+		// 0xdd 0xe1
 		{
-			name: "pop af",
-			opc:  "pop",
+			name: "pop ix",
+			mn:   "pop",
 			dst:  "ix",
 			src:  "",
 			data: []byte{0xdd, 0xe1},
@@ -1949,14 +2679,14 @@ func TestInstructions(t *testing.T) {
 				z.bus.Write(0xaa56, 0xee)
 			},
 			expect: func(z *z80) bool {
-				return z.pc == 0x0001 && z.sp == 0xaa57 &&
+				return z.pc == 0x0002 && z.sp == 0xaa57 &&
 					z.ix == 0xeeff
 			},
 		},
 		// 0xdd 0xe5
 		{
 			name: "push ix",
-			opc:  "push",
+			mn:   "push",
 			dst:  "ix",
 			src:  "",
 			data: []byte{0xdd, 0xe5},
@@ -1970,7 +2700,7 @@ func TestInstructions(t *testing.T) {
 		// 0xe1
 		{
 			name: "pop hl",
-			opc:  "pop",
+			mn:   "pop",
 			dst:  "hl",
 			src:  "",
 			data: []byte{0xe1},
@@ -1988,7 +2718,7 @@ func TestInstructions(t *testing.T) {
 		// 0xe2
 		{
 			name: "jp po,nn (P set)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "po",
 			src:  "$1122",
 			data: []byte{0xe2, 0x22, 0x11},
@@ -2000,7 +2730,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "jp po,nn (P clear)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "po",
 			src:  "$1122",
 			data: []byte{0xe2, 0x22, 0x11},
@@ -2012,7 +2742,7 @@ func TestInstructions(t *testing.T) {
 		// 0xe5
 		{
 			name: "push hl",
-			opc:  "push",
+			mn:   "push",
 			dst:  "hl",
 			src:  "",
 			data: []byte{0xe5},
@@ -2026,7 +2756,7 @@ func TestInstructions(t *testing.T) {
 		// 0xe6
 		{
 			name: "and n",
-			opc:  "and",
+			mn:   "and",
 			dst:  "$f0",
 			data: []byte{0xe6, 0xf0},
 			init: func(z *z80) { z.af = 0xa500 },
@@ -2042,7 +2772,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "and 0",
-			opc:  "and",
+			mn:   "and",
 			dst:  "$00",
 			data: []byte{0xe6, 0x00},
 			init: func(z *z80) { z.af = 0xa500 },
@@ -2058,7 +2788,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "and $7f",
-			opc:  "and",
+			mn:   "and",
 			dst:  "$7f",
 			data: []byte{0xe6, 0x7f},
 			init: func(z *z80) { z.af = 0xaf00 },
@@ -2077,7 +2807,7 @@ func TestInstructions(t *testing.T) {
 			// jp (hl) DOES NOT dereference hl but according to
 			// Zilog the mnemonic uses parenthesis
 			name: "jp (hl)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "(hl)",
 			src:  "",
 			data: []byte{0xe9},
@@ -2090,7 +2820,7 @@ func TestInstructions(t *testing.T) {
 		// 0xea
 		{
 			name: "jp pe,nn (P set)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "pe",
 			src:  "$1122",
 			data: []byte{0xea, 0x22, 0x11},
@@ -2102,7 +2832,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "jp pe,nn (Z clear)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "pe",
 			src:  "$1122",
 			data: []byte{0xea, 0x22, 0x11},
@@ -2114,7 +2844,7 @@ func TestInstructions(t *testing.T) {
 		// 0xeb
 		{
 			name: "ex de,hl",
-			opc:  "ex",
+			mn:   "ex",
 			dst:  "de",
 			src:  "hl",
 			data: []byte{0xeb},
@@ -2128,7 +2858,7 @@ func TestInstructions(t *testing.T) {
 		// XXX add more test cases for all the flags
 		{
 			name: "neg 0",
-			opc:  "neg",
+			mn:   "neg",
 			dst:  "",
 			src:  "",
 			data: []byte{0xed, 0x44},
@@ -2140,7 +2870,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "neg 1",
-			opc:  "neg",
+			mn:   "neg",
 			dst:  "",
 			src:  "",
 			data: []byte{0xed, 0x44},
@@ -2154,7 +2884,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "neg -1",
-			opc:  "neg",
+			mn:   "neg",
 			dst:  "",
 			src:  "",
 			data: []byte{0xed, 0x44},
@@ -2168,7 +2898,7 @@ func TestInstructions(t *testing.T) {
 		// 0xf1
 		{
 			name: "pop af",
-			opc:  "pop",
+			mn:   "pop",
 			dst:  "af",
 			src:  "",
 			data: []byte{0xf1},
@@ -2186,7 +2916,7 @@ func TestInstructions(t *testing.T) {
 		// 0xf2
 		{
 			name: "jp p,nn (S set)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "p",
 			src:  "$1122",
 			data: []byte{0xf2, 0x22, 0x11},
@@ -2198,7 +2928,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "jp p,nn (S clear)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "p",
 			src:  "$1122",
 			data: []byte{0xf2, 0x22, 0x11},
@@ -2210,7 +2940,7 @@ func TestInstructions(t *testing.T) {
 		// 0xf5
 		{
 			name: "push af",
-			opc:  "push",
+			mn:   "push",
 			dst:  "af",
 			src:  "",
 			data: []byte{0xf5},
@@ -2221,10 +2951,75 @@ func TestInstructions(t *testing.T) {
 					z.bus.Read(0xaa54) == 0x11
 			},
 		},
+		// 0xf6
+		{
+			name: "or n",
+			mn:   "or",
+			dst:  "$f0",
+			data: []byte{0xf6, 0xf0},
+			init: func(z *z80) { z.af = 0xa500 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.af&0xff00 == 0xf500 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "or 0",
+			mn:   "or",
+			dst:  "$00",
+			data: []byte{0xf6, 0x00},
+			init: func(z *z80) { z.af = 0xa500 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.af&0xff00 == 0xa500 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "or 0 on 0",
+			mn:   "or",
+			dst:  "$00",
+			data: []byte{0xf6, 0x00},
+			init: func(z *z80) { z.af = 0x0000 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "or $7f",
+			mn:   "or",
+			dst:  "$7f",
+			data: []byte{0xf6, 0x7f},
+			init: func(z *z80) { z.af = 0x8500 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.af&0xff00 == 0xff00 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
 		// 0xfa
 		{
 			name: "jp m,nn (S set)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "m",
 			src:  "$1122",
 			data: []byte{0xfa, 0x22, 0x11},
@@ -2236,7 +3031,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "jp m,nn (S clear)",
-			opc:  "jp",
+			mn:   "jp",
 			dst:  "m",
 			src:  "$1122",
 			data: []byte{0xfa, 0x22, 0x11},
@@ -2248,7 +3043,7 @@ func TestInstructions(t *testing.T) {
 		// 0xfd 0x23
 		{
 			name: "inc iy",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "iy",
 			src:  "",
 			data: []byte{0xfd, 0x23},
@@ -2259,7 +3054,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc iy == -1",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "iy",
 			src:  "",
 			data: []byte{0xfd, 0x23},
@@ -2270,7 +3065,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "inc iy == 0x7fff",
-			opc:  "inc",
+			mn:   "inc",
 			dst:  "iy",
 			src:  "",
 			data: []byte{0xfd, 0x23},
@@ -2282,7 +3077,7 @@ func TestInstructions(t *testing.T) {
 		// 0xfd 0x2b
 		{
 			name: "dec iy",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "iy",
 			src:  "",
 			data: []byte{0xfd, 0x2b},
@@ -2293,7 +3088,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "dec iy == 0",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "iy",
 			src:  "",
 			data: []byte{0xfd, 0x2b},
@@ -2303,7 +3098,7 @@ func TestInstructions(t *testing.T) {
 		},
 		{
 			name: "dec iy == 0x8000",
-			opc:  "dec",
+			mn:   "dec",
 			dst:  "iy",
 			src:  "",
 			data: []byte{0xfd, 0x2b},
@@ -2314,8 +3109,8 @@ func TestInstructions(t *testing.T) {
 		},
 		// 0xfd e1
 		{
-			name: "pop af",
-			opc:  "pop",
+			name: "pop iy",
+			mn:   "pop",
 			dst:  "iy",
 			src:  "",
 			data: []byte{0xfd, 0xe1},
@@ -2326,14 +3121,14 @@ func TestInstructions(t *testing.T) {
 				z.bus.Write(0xaa56, 0xee)
 			},
 			expect: func(z *z80) bool {
-				return z.pc == 0x0001 && z.sp == 0xaa57 &&
+				return z.pc == 0x0002 && z.sp == 0xaa57 &&
 					z.iy == 0xeeff
 			},
 		},
 		// 0xfd 0xe5
 		{
 			name: "push iy",
-			opc:  "push",
+			mn:   "push",
 			dst:  "iy",
 			src:  "",
 			data: []byte{0xfd, 0xe5},
@@ -2342,6 +3137,55 @@ func TestInstructions(t *testing.T) {
 				return z.pc == 0x0002 && z.sp == 0xaa53 &&
 					z.bus.Read(0xaa53) == 0x22 &&
 					z.bus.Read(0xaa54) == 0x11
+			},
+		},
+		// 0xfe
+		{
+			name: "cp i <",
+			mn:   "cp",
+			dst:  "$20",
+			data: []byte{0xfe, 0x20},
+			init: func(z *z80) { z.af = 0x1000 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.af&0xff00 == 0x1000 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == addsub &&
+					z.af&carry == carry
+			},
+		},
+		{
+			name: "cp i >",
+			mn:   "cp",
+			dst:  "$10",
+			data: []byte{0xfe, 0x10},
+			init: func(z *z80) { z.af = 0x2000 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.af&0xff00 == 0x2000 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == addsub &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "cp i =",
+			mn:   "cp",
+			dst:  "$20",
+			data: []byte{0xfe, 0x20},
+			init: func(z *z80) { z.af = 0x2000 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.af&0xff00 == 0x2000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == 0 &&
+					// PV
+					z.af&addsub == addsub &&
+					z.af&carry == 0
 			},
 		},
 	}
@@ -2384,12 +3228,19 @@ func TestInstructions(t *testing.T) {
 			t.Fatalf("%v: step %v", test.name, err)
 		}
 
-		opc, dst, src, x := z.DisassembleComponents(0)
-		if opc != test.opc {
-			t.Fatalf("%v: invalid opcode got %v expected %v",
-				test.name, opc, test.opc)
+		mn, dst, src, opc, x, err := z.DisassembleComponents(0)
+		if mn != test.mn {
+			t.Fatalf("%v: invalid mnemonic got %v expected %v opcode %v",
+				test.name, mn, test.mn, opc)
 		}
-		//t.Logf("%v %v %v %v", opc, dst, src, x)
+		var opcExpected string
+		for _, x := range test.data {
+			opcExpected += fmt.Sprintf("%02x ", x)
+		}
+		if opc != strings.Trim(opcExpected, " ") {
+			t.Fatalf("%v: invalid opcode got '%v' expected '%v'",
+				test.name, opc, strings.Trim(opcExpected, " "))
+		}
 		if dst != test.dst {
 			t.Fatalf("%v: invalid destination got %v expected %v",
 				test.name, dst, test.dst)

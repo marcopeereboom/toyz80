@@ -8,6 +8,7 @@ import (
 )
 
 var (
+	ErrDisassemble        = errors.New("could not disassemble")
 	ErrHalt               = errors.New("halt")
 	ErrInvalidInstruction = errors.New("invalid instruction")
 )
@@ -175,40 +176,64 @@ func (z *z80) Step() error {
 		z.bc = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
 	case 0x02: // ld (bc),a
 		z.bus.Write(z.bc, byte(z.af>>8))
-	case 0x03: //inc bc
+	case 0x03: // inc bc
 		z.bc += 1
-	case 0x04: //inc b
+	case 0x04: // inc b
 		z.bc = uint16(z.inc(byte(z.bc>>8)))<<8 | z.bc&0x00ff
+	case 0x05: // dec b
+		z.bc = uint16(z.dec(byte(z.bc>>8)))<<8 | z.bc&0x00ff
 	case 0x06: // ld b,n
 		z.bc = uint16(z.bus.Read(z.pc+1))<<8 | z.bc&0x00ff
 	case 0x0a: // ld a,(bc)
 		z.af = uint16(z.bus.Read(z.bc))<<8 | z.af&0x00ff
 	case 0x0b: //dec bc
 		z.bc -= 1
+	case 0x0c: // inc c
+		z.bc = uint16(z.inc(byte(z.bc))) | z.bc&0xff00
+	case 0x0d: // dec c
+		z.bc = uint16(z.dec(byte(z.bc))) | z.bc&0xff00
 	case 0x0e: // ld c,n
 		z.bc = uint16(z.bus.Read(z.pc+1)) | z.bc&0xff00
 	case 0x11: // ld de,nn
 		z.de = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
 	case 0x12: // ld (de),a
 		z.bus.Write(z.de, byte(z.af>>8))
-	case 0x13: //inc de
+	case 0x13: // inc de
 		z.de += 1
+	case 0x14: // inc d
+		z.de = uint16(z.inc(byte(z.de>>8)))<<8 | z.de&0x00ff
+	case 0x15: // dec d
+		z.de = uint16(z.dec(byte(z.de>>8)))<<8 | z.de&0x00ff
 	case 0x16: // ld d,n
 		z.de = uint16(z.bus.Read(z.pc+1))<<8 | z.de&0x00ff
 	case 0x18: // jr d
 		z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
 		z.totalCycles += opcodeStruct.noCycles
 		return nil
+	case 0x19: // add hl,de
+		z.hl = z.add16(z.hl, z.de)
 	case 0x1a: // ld a,(de)
 		z.af = uint16(z.bus.Read(z.de))<<8 | z.af&0x00ff
-	case 0x1b: //dec de
+	case 0x1b: // dec de
 		z.de -= 1
+	case 0x1c: // inc e
+		z.de = uint16(z.inc(byte(z.de))) | z.de&0xff00
+	case 0x1d: // dec e
+		z.de = uint16(z.dec(byte(z.de))) | z.de&0xff00
 	case 0x1e: // ld e,n
 		z.de = uint16(z.bus.Read(z.pc+1)) | z.de&0xff00
 	case 0x21: // ld hl,nn
 		z.hl = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
-	case 0x23: //inc hl
+	case 0x22: // ld (nn),hl
+		addr := uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
+		z.bus.Write(addr, byte(z.hl))
+		z.bus.Write(addr+1, byte(z.hl>>8))
+	case 0x23: // inc hl
 		z.hl += 1
+	case 0x24: // inc h
+		z.hl = uint16(z.inc(byte(z.hl>>8)))<<8 | z.hl&0x00ff
+	case 0x25: // dec h
+		z.hl = uint16(z.dec(byte(z.hl>>8)))<<8 | z.hl&0x00ff
 	case 0x26: // ld h,n
 		z.hl = uint16(z.bus.Read(z.pc+1))<<8 | z.hl&0x00ff
 	case 0x28: // jr z,d
@@ -219,8 +244,15 @@ func (z *z80) Step() error {
 		}
 		// XXX make this generic
 		z.totalCycles += 7
+	case 0x2a: // ld (hl),nn
+		addr := uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
+		z.hl = uint16(z.bus.Read(addr)) | uint16(z.bus.Read(addr+1))<<8
 	case 0x2b: //dec hl
 		z.hl -= 1
+	case 0x2c: // inc l
+		z.hl = uint16(z.inc(byte(z.hl))) | z.hl&0xff00
+	case 0x2d: // dec l
+		z.hl = uint16(z.dec(byte(z.hl))) | z.hl&0xff00
 	case 0x2e: // ld l,n
 		z.hl = uint16(z.bus.Read(z.pc+1)) | z.hl&0xff00
 	case 0x2f: // cpl
@@ -242,6 +274,10 @@ func (z *z80) Step() error {
 			uint16(z.bus.Read(z.pc+2))<<8, byte(z.af>>8))
 	case 0x33: //inc sp
 		z.sp += 1
+	case 0x34: // inc (hl)
+		z.bus.Write(z.hl, z.inc(z.bus.Read(z.hl)))
+	case 0x35: // dec (hl)
+		z.bus.Write(z.hl, z.dec(z.bus.Read(z.hl)))
 	case 0x36: // ld (hl),n
 		z.bus.Write(z.hl, z.bus.Read(z.pc+1))
 	case 0x37: // scf
@@ -411,6 +447,24 @@ func (z *z80) Step() error {
 		// nothing to do
 	case 0xa7: // and a
 		z.and(byte(z.af >> 8))
+	case 0xb0: // or b
+		z.or(byte(z.bc >> 8))
+	case 0xb1: // or c
+		z.or(byte(z.bc))
+	case 0xb2: // or d
+		z.or(byte(z.de >> 8))
+	case 0xb3: // or e
+		z.or(byte(z.de))
+	case 0xb4: // or h
+		z.or(byte(z.hl >> 8))
+	case 0xb5: // or l
+		z.or(byte(z.hl))
+	case 0xb6: // or (hl)
+		z.or(z.bus.Read(z.hl))
+	case 0xb7: // or a
+		z.or(byte(z.af >> 8))
+	case 0xbe: // cp (hl)
+		z.cp(z.bus.Read(z.hl))
 	case 0xbf: // cp a
 		z.cp(byte(z.af >> 8))
 	case 0xc1: // pop bc
@@ -459,6 +513,17 @@ func (z *z80) Step() error {
 				uint16(z.bus.Read(z.pc+2))<<8
 			z.totalCycles += opcodeStruct.noCycles
 			return nil
+		}
+	case 0xcb: // z80 only
+		byte2 := z.bus.Read(z.pc + 1)
+		opcodeStruct = &opcodesCB[byte2]
+		switch byte2 {
+		case 0x27: // sla a
+			z.af = uint16(z.sla(byte(z.af>>8)))<<8 | z.af&0x00ff
+		case 0x3f: // srl a
+			z.af = uint16(z.srl(byte(z.af>>8)))<<8 | z.af&0x00ff
+		default:
+			return ErrInvalidInstruction
 		}
 	case 0xcd: //call nn
 		retPC := z.pc + opcodeStruct.noBytes
@@ -605,6 +670,8 @@ func (z *z80) Step() error {
 		z.bus.Write(z.sp, byte(z.af>>8))
 		z.sp--
 		z.bus.Write(z.sp, byte(z.af))
+	case 0xf6: // or n
+		z.or(z.bus.Read(z.pc + 1))
 	case 0xfa: // jp m,nn
 		if z.af&sign == sign {
 			z.pc = uint16(z.bus.Read(z.pc+1)) |
@@ -648,61 +715,82 @@ func (z *z80) Step() error {
 }
 
 // Disassemble disassembles the instruction at the provided address and also
-// returns the number of bytes consumed.
-func (z *z80) Disassemble(address uint16) (string, int) {
-	opc, dst, src, noBytes := z.DisassembleComponents(address)
+// returns the address and the number of bytes consumed.
+func (z *z80) Disassemble(address uint16, loud bool) (string, uint16, int, error) {
+	mn, dst, src, opc, noBytes, err := z.DisassembleComponents(address)
 
 	if dst != "" && src != "" {
 		src = "," + src
 	}
 	dst += src
 
-	s := fmt.Sprintf("%-6v%-4v", opc, dst)
+	var s string
+	if loud {
+		s = fmt.Sprintf("%-12v%-6v%-4v", opc, mn, dst)
+	} else {
+		s = fmt.Sprintf("%-6v%-4v", mn, dst)
+	}
+	return s, address, noBytes, err
+}
 
-	return s, noBytes
+// Disassemble disassembles the instruction at the current program counter.
+func (z *z80) DisassemblePC(loud bool) (string, uint16, int, error) {
+	return z.Disassemble(z.pc, loud)
 }
 
 // DisassembleComponents disassmbles the instruction at the provided address
 // and returns all compnonts of the instruction (opcode, destination, source).
-func (z *z80) DisassembleComponents(address uint16) (opc string, dst string, src string, noBytes int) {
-	o := &opcodes[z.bus.Read(address)]
+func (z *z80) DisassembleComponents(address uint16) (mnemonic string, dst string, src string, opc string, noBytes int, retErr error) {
+	p := make([]byte, 4)
+	p[0] = z.bus.Read(address)
+	o := &opcodes[p[0]]
+	start := uint16(1)
 	if o.multiByte {
-		switch z.bus.Read(address) {
+		p[1] = z.bus.Read(address + 1)
+		switch p[0] {
+		case 0xcb:
+			o = &opcodesCB[p[1]]
 		case 0xdd:
-			o = &opcodesDD[z.bus.Read(address+1)]
+			o = &opcodesDD[p[1]]
 		case 0xed:
-			o = &opcodesED[z.bus.Read(address+1)]
+			o = &opcodesED[p[1]]
 		case 0xfd:
-			o = &opcodesFD[z.bus.Read(address+1)]
+			o = &opcodesFD[p[1]]
 		}
+		start = 2
 	}
+
+	// get remaining bytes.
+	for i := start; i < uint16(o.noBytes); i++ {
+		p[i] = z.bus.Read(address + i)
+	}
+
 	switch o.dst {
 	case condition:
 		dst = o.dstR[z.mode]
 	case displacement:
-		dst = fmt.Sprintf("$%04x", address+2+
-			uint16(int8(z.bus.Read(address+1))))
+		dst = fmt.Sprintf("$%04x", address+2+uint16(int8(p[1])))
 	case registerIndirect:
 		if z.mode == Mode8080 {
 			dst = fmt.Sprintf("%v", o.dstR[z.mode])
 		} else {
 			dst = fmt.Sprintf("(%v)", o.dstR[z.mode])
 		}
+	case extended:
+		dst = fmt.Sprintf("($%04x)", uint16(p[1])|uint16(p[2])<<8)
 	case immediate:
-		dst = fmt.Sprintf("$%02x", z.bus.Read(address+1))
+		dst = fmt.Sprintf("$%02x", p[1])
 	case immediateExtended:
-		dst = fmt.Sprintf("$%04x", uint16(z.bus.Read(address+1))|
-			uint16(z.bus.Read(address+2))<<8)
+		dst = fmt.Sprintf("$%04x", uint16(p[1])|uint16(p[2])<<8)
 	case register:
 		dst = o.dstR[z.mode]
 	case indirect:
-		dst = fmt.Sprintf("($%02x)", z.bus.Read(address+1))
+		dst = fmt.Sprintf("($%02x)", p[1])
 	}
 
 	switch o.src {
 	case displacement:
-		src = fmt.Sprintf("$%04x", address+2+
-			uint16(int8(z.bus.Read(address+1))))
+		src = fmt.Sprintf("$%04x", address+2+uint16(int8(p[1])))
 	case registerIndirect:
 		if z.mode == Mode8080 {
 			src = fmt.Sprintf("%v", o.srcR[z.mode])
@@ -710,25 +798,44 @@ func (z *z80) DisassembleComponents(address uint16) (opc string, dst string, src
 			src = fmt.Sprintf("(%v)", o.srcR[z.mode])
 		}
 	case extended:
-		src = fmt.Sprintf("($%04x)", uint16(z.bus.Read(address+1))|
-			uint16(z.bus.Read(address+2))<<8)
+		src = fmt.Sprintf("($%04x)", uint16(p[1])|uint16(p[2])<<8)
 	case immediate:
-		src = fmt.Sprintf("$%02x", z.bus.Read(address+1))
+		src = fmt.Sprintf("$%02x", p[1])
 	case immediateExtended:
-		src = fmt.Sprintf("$%04x", uint16(z.bus.Read(address+1))|
-			uint16(z.bus.Read(address+2))<<8)
+		src = fmt.Sprintf("$%04x", uint16(p[1])|uint16(p[2])<<8)
 	case register:
 		src = o.srcR[z.mode]
 	case indirect:
-		src = fmt.Sprintf("($%02x)", z.bus.Read(address+1))
+		src = fmt.Sprintf("($%02x)", p[1])
 	}
 
 	noBytes = int(o.noBytes)
+	retErr = nil
 	if len(o.mnemonic) == 0 {
-		opc = "INVALID"
-		noBytes = 1
+		switch p[0] {
+		case 0xdd, 0xed, 0xfd:
+			mnemonic = fmt.Sprintf("%02x %02x", p[0], p[1])
+			noBytes = 2
+		default:
+			mnemonic = fmt.Sprintf("%02x", p[0])
+			noBytes = 1
+		}
+		retErr = fmt.Errorf("%04x: %v INVALID", address, mnemonic)
 	} else {
-		opc = o.mnemonic[z.mode]
+		switch noBytes {
+		case 1:
+			opc = fmt.Sprintf("%02x", p[0])
+		case 2:
+			opc = fmt.Sprintf("%02x %02x", p[0], p[1])
+		case 3:
+			opc = fmt.Sprintf("%02x %02x %02x", p[0], p[1], p[2])
+		case 4:
+			opc = fmt.Sprintf("%02x %02x %02x %02x", p[0], p[1],
+				p[2], p[3])
+		default:
+			opc = "OPCINV"
+		}
+		mnemonic = o.mnemonic[z.mode]
 	}
 
 	return
@@ -739,10 +846,13 @@ func (z *z80) Trace() ([]string, []string, error) {
 	registers := make([]string, 0, 1024)
 
 	for {
-		s, _ := z.Disassemble(z.pc)
+		s, _, _, err := z.Disassemble(z.pc, true)
 		trace = append(trace, fmt.Sprintf("%04x: %v", z.pc, s))
+		if err != nil {
+			return trace, registers, err
+		}
 		//fmt.Printf("%04x: %v\n", z.pc, s)
-		err := z.Step()
+		err = z.Step()
 		registers = append(registers, z.DumpRegisters())
 		//fmt.Printf("\t%v\n", z.DumpRegisters())
 		if err != nil {
