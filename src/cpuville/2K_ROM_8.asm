@@ -475,10 +475,10 @@ dump_entry_string:	defm	"Enter no. of bytes to dump (decimal): ",0
 LBA_entry_string:	defm	"Enter LBA (decimal, 0 to 65535): ",0
 erase_char_string:	defm	008h,01bh,"[K",000h	;ANSI sequence for backspace, erase to end of line.
 address_entry_msg:	defm	"Enter 4-digit hex address (use upper-case A through F): ",0
-address_error_msg:	defm	"\r\nError: invalid hex character, try again: ",0
-data_entry_msg:		defm	"Enter hex bytes, hit return when finished.\r\n",0
-data_error_msg:		defm	"Error: invalid hex byte.\r\n",0
-decimal_error_msg:	defm	"\r\nError: invalid decimal number, try again: ",0
+address_error_msg:	defm	13,10,"Error: invalid hex character, try again: ",0
+data_entry_msg:		defm	"Enter hex bytes, hit return when finished.",13,10,0
+data_error_msg:		defm	"Error: invalid hex byte.",13,10,0
+decimal_error_msg:	defm	13,10,"Error: invalid decimal number, try again: ",0
 ;
 ;Simple monitor program for CPUville Z80 computer with serial interface.
 monitor_cold_start:	ld	sp,ROM_monitor_stack
@@ -666,18 +666,18 @@ no_match_jump:		ld	hl,no_match_message
 ;
 ;Monitor data structures:
 ;
-monitor_message: 	defm	"\r\nROM ver. 8\r\n",0
+monitor_message: 	defm	13,10,"ROM ver. 8",13,10,0
 no_match_message:	defm	"? ",0
-help_message:		defm	"Commands implemented:\r\n",0
-dump_message:		defm	"Displays a 256-byte block of memory.\r\n",0
-load_message:		defm	"Enter hex bytes starting at memory location.\r\n",0
-run_message:		defm	"Will jump to (execute) program at address entered.\r\n",0
-bload_message:		defm	"Loads a binary file into memory.\r\n",0
-bload_ready_message:	defm	"\n\rReady to receive, start transfer.",0
-bdump_message:		defm	"Dumps binary data from memory to serial port.\r\n",0
-bdump_ready_message:	defm	"\n\rReady to send, hit any key to start.",0
-diskrd_message:		defm	"Reads one sector from disk to memory.\r\n",0
-diskwr_message:		defm	"Writes one sector from memory to disk.\r\n",0
+help_message:		defm	"Commands implemented:",13,10,0
+dump_message:		defm	"Displays a 256-byte block of memory.",13,10,0
+load_message:		defm	"Enter hex bytes starting at memory location.",13,10,0
+run_message:		defm	"Will jump to (execute) program at address entered.",13,10,0
+bload_message:		defm	"Loads a binary file into memory.",13,10,0
+bload_ready_message:	defm	10,13,"Ready to receive, start transfer.",0
+bdump_message:		defm	"Dumps binary data from memory to serial port.",13,10,0
+bdump_ready_message:	defm	10,13,"Ready to send, hit any key to start.",0
+diskrd_message:		defm	"Reads one sector from disk to memory.",13,10,0
+diskwr_message:		defm	"Writes one sector from memory to disk.",13,10,0
 ;Strings for matching:
 dump_string:		defm	"dump",0
 load_string:		defm	"load",0
