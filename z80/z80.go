@@ -43,6 +43,9 @@ type z80 struct {
 	pc uint16 // program counter
 	sp uint16 // stack pointer
 
+	iff1 byte // iff1 flip-flop
+	iff2 byte // iff2 flip-flop
+
 	bus *bus.Bus // System bus
 
 	totalCycles uint64 // Total cycles used
@@ -151,6 +154,11 @@ func (z *z80) evalH(src, increment byte) {
 }
 
 func (z *z80) genericPostInstruction(o *opcode) {
+	// panic for now
+	if o.noBytes == 0 || o.noCycles == 0 {
+		panic(fmt.Sprintf("opcode missing or invalid: pc %04x", z.pc))
+	}
+
 	z.totalCycles += o.noCycles
 	z.pc += uint16(o.noBytes)
 }
@@ -222,6 +230,8 @@ func (z *z80) Step() error {
 		z.de = uint16(z.dec(byte(z.de))) | z.de&0xff00
 	case 0x1e: // ld e,n
 		z.de = uint16(z.bus.Read(z.pc+1)) | z.de&0xff00
+	case 0x1f: // rar
+		z.af = uint16(z.rr(byte(z.af>>8)))<<8 | z.af&0x00ff
 	case 0x21: // ld hl,nn
 		z.hl = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
 	case 0x22: // ld (nn),hl
@@ -445,8 +455,12 @@ func (z *z80) Step() error {
 		z.af = uint16(z.bus.Read(z.hl))<<8 | z.af&0x00ff
 	case 0x7f: // ld a,a
 		// nothing to do
+	case 0x97: // sub a
+		z.sub(byte(z.af >> 8))
 	case 0xa7: // and a
 		z.and(byte(z.af >> 8))
+	case 0xaf: // xor a
+		z.xor(byte(z.af >> 8))
 	case 0xb0: // or b
 		z.or(byte(z.bc >> 8))
 	case 0xb1: // or c
@@ -463,10 +477,32 @@ func (z *z80) Step() error {
 		z.or(z.bus.Read(z.hl))
 	case 0xb7: // or a
 		z.or(byte(z.af >> 8))
+	case 0xb8: // sub b
+		z.sub(byte(z.bc >> 8))
+	case 0xb9: // cp c
+		z.cp(byte(z.bc))
+	case 0xba: // cp d
+		z.cp(byte(z.de >> 8))
+	case 0xbb: // cp e
+		z.cp(byte(z.de))
+	case 0xbc: // cp h
+		z.cp(byte(z.hl >> 8))
+	case 0xbd: // cp h
+		z.cp(byte(z.hl))
 	case 0xbe: // cp (hl)
 		z.cp(z.bus.Read(z.hl))
 	case 0xbf: // cp a
 		z.cp(byte(z.af >> 8))
+	case 0xc0: // ret nz
+		if z.af&zero == 0 {
+			pc := uint16(z.bus.Read(z.sp))
+			z.sp++
+			pc = uint16(z.bus.Read(z.sp))<<8 | pc&0x00ff
+			z.sp++
+			z.totalCycles += 11 // XXX
+			z.pc = pc
+			return nil
+		}
 	case 0xc1: // pop bc
 		z.bc = uint16(z.bus.Read(z.sp)) | z.bc&0xff00
 		z.sp++
@@ -489,6 +525,19 @@ func (z *z80) Step() error {
 		z.bus.Write(z.sp, byte(z.bc>>8))
 		z.sp--
 		z.bus.Write(z.sp, byte(z.bc))
+	case 0xc6: // add i
+		z.add(z.bus.Read(z.pc + 1))
+	case 0xc7: // rst $0
+		retPC := z.pc + opcodeStruct.noBytes
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC>>8))
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC))
+
+		z.pc = 0x00
+
+		z.totalCycles += opcodeStruct.noCycles
+		return nil
 	case 0xc8: // ret z
 		if z.af&zero == zero {
 			pc := uint16(z.bus.Read(z.sp))
@@ -540,6 +589,27 @@ func (z *z80) Step() error {
 
 		z.totalCycles += opcodeStruct.noCycles
 		return nil
+	case 0xcf: // rst $08
+		retPC := z.pc + opcodeStruct.noBytes
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC>>8))
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC))
+
+		z.pc = 0x08
+
+		z.totalCycles += opcodeStruct.noCycles
+		return nil
+	case 0xd0: // ret nc
+		if z.af&carry == 0 {
+			pc := uint16(z.bus.Read(z.sp))
+			z.sp++
+			pc = uint16(z.bus.Read(z.sp))<<8 | pc&0x00ff
+			z.sp++
+			z.totalCycles += 11 // XXX
+			z.pc = pc
+			return nil
+		}
 	case 0xd1: // pop de
 		z.de = uint16(z.bus.Read(z.sp)) | z.de&0xff00
 		z.sp++
@@ -559,6 +629,29 @@ func (z *z80) Step() error {
 		z.bus.Write(z.sp, byte(z.de>>8))
 		z.sp--
 		z.bus.Write(z.sp, byte(z.de))
+	case 0xd6: // sub i
+		z.sub(z.bus.Read(z.pc + 1))
+	case 0xd7: // rst $10
+		retPC := z.pc + opcodeStruct.noBytes
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC>>8))
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC))
+
+		z.pc = 0x10
+
+		z.totalCycles += opcodeStruct.noCycles
+		return nil
+	case 0xd8: // ret c
+		if z.af&carry == carry {
+			pc := uint16(z.bus.Read(z.sp))
+			z.sp++
+			pc = uint16(z.bus.Read(z.sp))<<8 | pc&0x00ff
+			z.sp++
+			z.totalCycles += 11 // XXX
+			z.pc = pc
+			return nil
+		}
 	case 0xda: // jp c,nn
 		if z.af&carry == carry {
 			z.pc = uint16(z.bus.Read(z.pc+1)) |
@@ -592,6 +685,17 @@ func (z *z80) Step() error {
 				z.pc)
 			//return ErrInvalidInstruction
 		}
+	case 0xdf: // rst $18
+		retPC := z.pc + opcodeStruct.noBytes
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC>>8))
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC))
+
+		z.pc = 0x18
+
+		z.totalCycles += opcodeStruct.noCycles
+		return nil
 	case 0xe1: // pop hl
 		z.hl = uint16(z.bus.Read(z.sp)) | z.hl&0xff00
 		z.sp++
@@ -611,6 +715,17 @@ func (z *z80) Step() error {
 		z.bus.Write(z.sp, byte(z.hl))
 	case 0xe6: // and n
 		z.and(z.bus.Read(z.pc + 1))
+	case 0xe7: // rst $20
+		retPC := z.pc + opcodeStruct.noBytes
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC>>8))
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC))
+
+		z.pc = 0x20
+
+		z.totalCycles += opcodeStruct.noCycles
+		return nil
 	case 0xe9: // jp (hl)
 		// but we don't dereference, *sigh* zilog
 		z.pc = z.hl
@@ -662,6 +777,17 @@ func (z *z80) Step() error {
 				z.pc)
 			//return ErrInvalidInstruction
 		}
+	case 0xef: // rst $28
+		retPC := z.pc + opcodeStruct.noBytes
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC>>8))
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC))
+
+		z.pc = 0x28
+
+		z.totalCycles += opcodeStruct.noCycles
+		return nil
 	case 0xf1: // pop af
 		z.af = uint16(z.bus.Read(z.sp)) | z.af&0xff00
 		z.sp++
@@ -674,6 +800,9 @@ func (z *z80) Step() error {
 			z.totalCycles += opcodeStruct.noCycles
 			return nil
 		}
+	case 0xf3: // di
+		z.iff1 = 0
+		z.iff2 = 0
 	case 0xf5: // push af
 		z.sp--
 		z.bus.Write(z.sp, byte(z.af>>8))
@@ -681,6 +810,17 @@ func (z *z80) Step() error {
 		z.bus.Write(z.sp, byte(z.af))
 	case 0xf6: // or n
 		z.or(z.bus.Read(z.pc + 1))
+	case 0xf7: // rst $30
+		retPC := z.pc + opcodeStruct.noBytes
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC>>8))
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC))
+
+		z.pc = 0x30
+
+		z.totalCycles += opcodeStruct.noCycles
+		return nil
 	case 0xfa: // jp m,nn
 		if z.af&sign == sign {
 			z.pc = uint16(z.bus.Read(z.pc+1)) |
@@ -688,6 +828,9 @@ func (z *z80) Step() error {
 			z.totalCycles += opcodeStruct.noCycles
 			return nil
 		}
+	case 0xfb: // ei
+		z.iff1 = 1
+		z.iff2 = 1
 	case 0xfd: // z80 only
 		byte2 := z.bus.Read(z.pc + 1)
 		opcodeStruct = &opcodesFD[byte2]
@@ -714,6 +857,17 @@ func (z *z80) Step() error {
 		}
 	case 0xfe: // cp i
 		z.cp(z.bus.Read(z.pc + 1))
+	case 0xff: // rst $38
+		retPC := z.pc + opcodeStruct.noBytes
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC>>8))
+		z.sp--
+		z.bus.Write(z.sp, byte(retPC))
+
+		z.pc = 0x38
+
+		z.totalCycles += opcodeStruct.noCycles
+		return nil
 	default:
 		//fmt.Printf("opcode %x\n", opcode)
 		//return ErrInvalidInstruction
@@ -825,7 +979,7 @@ func (z *z80) DisassembleComponents(address uint16) (mnemonic string, dst string
 	retErr = nil
 	if len(o.mnemonic) == 0 {
 		switch p[0] {
-		case 0xdd, 0xed, 0xfd:
+		case 0xcb, 0xdd, 0xed, 0xfd:
 			mnemonic = fmt.Sprintf("%02x %02x", p[0], p[1])
 			noBytes = 2
 		default:

@@ -68,6 +68,15 @@ func (z *z80) add16(value1, value2 uint16) uint16 {
 	//z80.F = (z80.F & (FLAG_V | FLAG_Z | FLAG_S)) | ternOpB((add16temp&0x10000) != 0, FLAG_C, 0) | (byte(add16temp>>8) & (FLAG_3 | FLAG_5)) | halfcarryAddTable[lookup]
 }
 
+func (z *z80) add(val byte) {
+	a := byte(z.af >> 8)
+	t := uint(a) + uint(val)
+	lookup := a&0x88>>3 | val&0x88>>2 | byte(t&0x88>>1)
+	z.af = uint16(byte(t))<<8 | uint16(ternB(t&0x100 != 0, FLAG_C, 0)|
+		halfcarryAddTable[lookup&0x07]|overflowAddTable[lookup>>4]|
+		sz53Table[a])
+}
+
 func (z *z80) and(val byte) {
 	a := byte(z.af>>8) & val
 	z.af = uint16(a)<<8 | halfCarry | uint16(sz53pTable[a])
@@ -104,6 +113,13 @@ func (z *z80) or(val byte) {
 	z.af = uint16(a)<<8 | uint16(sz53pTable[a])
 }
 
+func (z *z80) rr(val byte) byte {
+	t := val
+	val = val>>1 | byte(z.af)<<7
+	z.af = z.af&0xff00 | uint16(t&FLAG_C) | uint16(sz53pTable[val])
+	return val
+}
+
 func (z *z80) sla(val byte) byte {
 	f := val >> 7
 	val <<= 1
@@ -116,6 +132,21 @@ func (z *z80) srl(val byte) byte {
 	val >>= 1
 	z.af = uint16(f) | uint16(sz53pTable[val])
 	return val
+}
+
+func (z *z80) sub(val byte) {
+	a := byte(z.af >> 8)
+	t := uint16(a) - uint16(val)
+	lookup := a&0x88>>3 | val&0x88>>2 | byte(t&0x88>>1)
+	a = byte(t)
+	z.af = uint16(a)<<8 | uint16(ternB(t&0x100 != 0, FLAG_C, 0)|FLAG_N|
+		halfcarrySubTable[lookup&0x07]|overflowSubTable[lookup>>4]|
+		sz53Table[a])
+}
+
+func (z *z80) xor(val byte) {
+	a := byte(z.af>>8) ^ val
+	z.af = uint16(a)<<8 | uint16(sz53pTable[a])
 }
 
 func init() {
