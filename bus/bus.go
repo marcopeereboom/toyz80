@@ -26,6 +26,7 @@ var (
 	ErrInvalidUnit       = errors.New("invalid memory unit")
 	ErrInvalidSize       = errors.New("invalid memory size")
 	ErrInvalidMemoryType = errors.New("invalid memory type")
+	ErrInvalidImageSize  = errors.New("invalid image size")
 )
 
 type BusDeviceType int
@@ -54,7 +55,7 @@ type Device struct {
 	Image []byte
 }
 
-func New(devices []Device) (*Bus, error) {
+func New(devices []Device, shutdown chan string) (*Bus, error) {
 	// Hardcode memory and I/O space sizes for now.
 	bus := &Bus{
 		memory:      make([]byte, MemoryMax),
@@ -76,21 +77,21 @@ func New(devices []Device) (*Bus, error) {
 			if int(d.Start)+d.Size+2 > IOMax {
 				return nil, ErrInvalidSize
 			}
-			console, err := console.New()
+			cons, err := console.New(shutdown)
 			if err != nil {
 				return nil, err
 			}
 			// XXX rethink this
-			bus.io[d.Start] = console
-			bus.io[d.Start+1] = console
+			bus.io[d.Start] = cons
+			bus.io[d.Start+1] = cons
 			bus.ioStart[d.Start] = byte(d.Start)
 			bus.ioStart[d.Start+1] = byte(d.Start)
 		case DeviceDummy:
-			dummy, err := dummy.New()
+			dummyDev, err := dummy.New()
 			if err != nil {
 				return nil, err
 			}
-			bus.io[d.Start] = dummy
+			bus.io[d.Start] = dummyDev
 			bus.ioStart[d.Start] = byte(d.Start)
 		default:
 			return nil, ErrInvalidDeviceType
@@ -108,6 +109,10 @@ func (b *Bus) newMemoryRegion(d Device) error {
 
 	if int(d.Start)+d.Size > MemoryMax {
 		return ErrInvalidSize
+	}
+
+	if len(d.Image) > d.Size {
+		return ErrInvalidImageSize
 	}
 
 	var flags byte
@@ -151,6 +156,25 @@ func (b *Bus) IORead(address byte) byte {
 	x := b.io[address].(device.Device).Read(address - b.ioStart[address])
 	return x
 }
+
 func (b *Bus) IOWrite(address, data byte) {
 	b.io[address].(device.Device).Write(address-b.ioStart[address], data)
+}
+
+func (b *Bus) Shutdown() {
+	for i := range b.io {
+		dev, ok := b.io[i].(device.Device)
+		if !ok {
+			continue
+		}
+		dev.Shutdown()
+	}
+}
+
+func (b *Bus) WriteMemory(address uint16, data []byte) error {
+	if int(address)+len(data) > len(b.memory) {
+		return ErrInvalidImageSize
+	}
+	copy(b.memory[address:], data[:])
+	return nil
 }

@@ -3,9 +3,10 @@ package console
 import (
 	"errors"
 	"fmt"
-	"os"
-	"os/exec"
+	"sync"
+	"time"
 
+	"github.com/gdamore/tcell"
 	"github.com/marcopeereboom/toyz80/device"
 )
 
@@ -16,8 +17,9 @@ var (
 // Console is a i8251A serial console.  This implementation is incomplete and
 // it only needs to emulate the bare necessities.
 type Console struct {
+	sync.Mutex
+
 	address byte
-	status  byte
 	data    byte
 	dataC   chan byte
 	mode    byte
@@ -29,6 +31,11 @@ type Console struct {
 	// speed, parity etc. See:
 	// http://www.electronics.dit.ie/staff/tscarff/8251usart/8251.htm
 	cold bool
+
+	screen         tcell.Screen
+	beenShutdown   bool
+	shutdownReason string
+	shutdownC      chan string
 }
 
 var (
@@ -38,6 +45,11 @@ var (
 func (c *Console) Write(address, data byte) {
 	switch address {
 	case 0x00:
+		if c.cold || c.errorFlag || !c.enableTx {
+			return
+		}
+		// echo using printf so tjat we don't have to emulate actual
+		// screen stuff
 		fmt.Printf("%c", data&0x7f)
 	case 0x01:
 		if c.cold {
@@ -106,14 +118,17 @@ func (c *Console) Write(address, data byte) {
 	}
 }
 
-// Read is not reentrant.
 func (c *Console) Read(address byte) byte {
+	if c.cold || c.errorFlag || !c.enableRx {
+		return 0xff
+	}
+
 	switch address {
 	case 0x00:
-		//panic("console read data")
+		c.Lock()
+		defer c.Unlock()
 		if c.data != 0xff {
 			a := c.data
-			//fmt.Printf("read %02x  ", a)
 			c.data = 0xff
 			return a
 		}
@@ -121,14 +136,14 @@ func (c *Console) Read(address byte) byte {
 	case 0x01:
 		var rv byte
 		select {
-		case c.data = <-c.dataC:
+		case data := <-c.dataC:
+			c.Lock()
+			c.data = data
+			c.Unlock()
 			rv = 0x03
 		default:
 			rv = 0x01
 		}
-		//if c.data != 0xff {
-		//	return 0x03
-		//}
 		return rv //0x01 //| 0x02 // TXRDY | RXRDY
 	default:
 	}
@@ -136,35 +151,72 @@ func (c *Console) Read(address byte) byte {
 	return 0xff
 }
 
-func New() (interface{}, error) {
-	// disable input buffering
-	err := exec.Command("stty", "-f", "/dev/tty", "cbreak", "min", "1").Run()
-	if err != nil {
-		return nil, err
-	}
-	// do not display entered characters on the screen
-	err = exec.Command("stty", "-f", "/dev/tty", "-echo").Run()
-	if err != nil {
-		return nil, err
+func (c *Console) Shutdown() {
+	c.Lock()
+	defer c.Unlock()
+
+	if c.beenShutdown {
+		return
 	}
 
-	defer exec.Command("stty", "-f", "/dev/tty", "echo").Run()
+	c.screen.Fini()
+	c.beenShutdown = true
+	c.shutdownC <- c.shutdownReason
+}
 
+func New(shutdownC chan string) (interface{}, error) {
 	c := &Console{
 		errorFlag: true,
 		cold:      true,
 		dataC:     make(chan byte, 1),
+		shutdownC: shutdownC,
 	}
+
+	var err error
+	tcell.SetEncodingFallback(tcell.EncodingFallbackASCII)
+	c.screen, err = tcell.NewScreen()
+	if err != nil {
+		return nil, err
+	}
+	if err = c.screen.Init(); err != nil {
+		return nil, err
+	}
+
+	c.screen.SetStyle(tcell.StyleDefault.Foreground(tcell.ColorGreen).
+		Background(tcell.ColorBlack))
+	c.screen.ShowCursor(0, 0)
+	c.screen.Clear()
+
 	go func() {
-		var b []byte = make([]byte, 1)
 		for {
-			os.Stdin.Read(b)
-			// see if we need to translate \r to \n
-			if b[0] == 0x0a {
-				b[0] = 0x0d
+			// exit if we were shut down.
+			c.Lock()
+			if c.beenShutdown {
+				c.Unlock()
+				return
 			}
-			c.dataC <- b[0]
+			c.Unlock()
+
+			ev := c.screen.PollEvent()
+			switch ev := ev.(type) {
+			case *tcell.EventKey:
+				key := ev.Key()
+				switch key {
+				case tcell.KeyEscape:
+					c.shutdownReason = "user initiated"
+					c.Shutdown()
+				default:
+					r := ev.Rune()
+					c.dataC <- byte(r)
+				}
+			case *tcell.EventResize:
+				c.screen.Sync()
+			}
 		}
 	}()
+
+	// let it settle.
+	time.Sleep(250 * time.Millisecond)
+
 	return c, nil
 }

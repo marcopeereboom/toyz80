@@ -27,6 +27,9 @@ func (d *Dummy) Read(address byte) byte {
 	return d.last
 }
 
+func (d *Dummy) Shutdown() {
+}
+
 func New() (interface{}, error) {
 	return &Dummy{last: 0xff}, nil
 }
