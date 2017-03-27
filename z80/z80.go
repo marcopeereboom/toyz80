@@ -33,12 +33,16 @@ const (
 
 // z80 describes a z80/8080 CPU.
 type z80 struct {
-	af uint16 // A & Flags
-	bc uint16 // B & C
-	de uint16 // D & E
-	hl uint16 // H & L
-	ix uint16 // index register X
-	iy uint16 // index register Y
+	af  uint16 // A & Flags
+	af_ uint16 // A' & Flags'
+	bc  uint16 // B & C
+	bc_ uint16 // B' & C'
+	de  uint16 // D & E
+	de_ uint16 // D' & E'
+	hl  uint16 // H & L
+	hl_ uint16 // H' & L'
+	ix  uint16 // index register X
+	iy  uint16 // index register Y
 
 	pc uint16 // program counter
 	sp uint16 // stack pointer
@@ -196,6 +200,10 @@ func (z *z80) Step() error {
 		a := uint16(z.af>>8) << 1
 		f := a >> 9
 		z.af = a<<8 | f
+	case 0x08:
+		t := z.af
+		z.af = z.af_
+		z.af_ = t
 	case 0x09:
 		z.add16(z.hl, z.bc)
 	case 0x0a: // ld a,(bc)
@@ -693,6 +701,8 @@ func (z *z80) Step() error {
 
 		z.totalCycles += opcodeStruct.noCycles
 		return nil
+	case 0xce: // adc a,i
+		z.adc(z.bus.Read(z.pc + 1))
 	case 0xcf: // rst $08
 		retPC := z.pc + opcodeStruct.noBytes
 		z.sp--

@@ -188,8 +188,16 @@ var (
 			noBytes:  1,
 			noCycles: 4,
 		},
-		// 0x08
-		opcode{},
+		// 0x08 ex af,af'
+		opcode{
+			mnemonic: []string{"ex"},
+			dst:      register,
+			dstR:     []string{"af"},
+			src:      register,
+			srcR:     []string{"af'"},
+			noBytes:  1,
+			noCycles: 4,
+		},
 		// 0x09 add hl,bc
 		opcode{
 			mnemonic: []string{"add", "dad"},
@@ -1963,8 +1971,15 @@ var (
 			noBytes:  3,
 			noCycles: 17,
 		},
-		// 0xce
-		opcode{},
+		// 0xce adc a,i
+		opcode{
+			mnemonic: []string{"add", "aci"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      immediate,
+			noBytes:  1,
+			noCycles: 7,
+		},
 		// 0xcf rst $08
 		opcode{
 			mnemonic: []string{"rst", "rst"},
