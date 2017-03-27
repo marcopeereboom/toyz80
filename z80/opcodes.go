@@ -182,12 +182,24 @@ var (
 			noBytes:  2,
 			noCycles: 7,
 		},
-		// 0x07
-		opcode{},
+		// 0x07 rlca
+		opcode{
+			mnemonic: []string{"rlca", "rlc"},
+			noBytes:  1,
+			noCycles: 4,
+		},
 		// 0x08
 		opcode{},
-		// 0x09
-		opcode{},
+		// 0x09 add hl,bc
+		opcode{
+			mnemonic: []string{"add", "dad"},
+			dst:      register,
+			dstR:     []string{"hl", "b"},
+			src:      registerIndirect,
+			srcR:     []string{"bc", ""},
+			noBytes:  1,
+			noCycles: 11,
+		},
 		// 0x0a ld a,(bc)
 		opcode{
 			mnemonic: []string{"ld", "ldax"},
@@ -231,8 +243,12 @@ var (
 			noBytes:  2,
 			noCycles: 7,
 		},
-		// 0x0f
-		opcode{},
+		// 0x0f rrca
+		opcode{
+			mnemonic: []string{"rrca", "rrc"},
+			noBytes:  1,
+			noCycles: 4,
+		},
 
 		// 0x10
 		opcode{},
@@ -421,8 +437,16 @@ var (
 			noBytes:  2,
 			noCycles: 12, // XXX or 7
 		},
-		// 0x29
-		opcode{},
+		// 0x29 add hl,hl
+		opcode{
+			mnemonic: []string{"add", "dad"},
+			dst:      register,
+			dstR:     []string{"hl", "h"},
+			src:      registerIndirect,
+			srcR:     []string{"hl", ""},
+			noBytes:  1,
+			noCycles: 11,
+		},
 		// 0x2a ld hl,(nn)
 		opcode{
 			mnemonic: []string{"ld", "lhld"},
@@ -533,8 +557,16 @@ var (
 		},
 		// 0x38
 		opcode{},
-		// 0x39
-		opcode{},
+		// 0x39 add hl,sp
+		opcode{
+			mnemonic: []string{"add", "dad"},
+			dst:      register,
+			dstR:     []string{"hl", "sp"},
+			src:      registerIndirect,
+			srcR:     []string{"sp", ""},
+			noBytes:  1,
+			noCycles: 11,
+		},
 		// 0x3a ld a,(nn)
 		opcode{
 			mnemonic: []string{"ld", "lda"},
@@ -560,8 +592,14 @@ var (
 			noBytes:  1,
 			noCycles: 4,
 		},
-		// 0x3d
-		opcode{},
+		// 0x3d dec a
+		opcode{
+			mnemonic: []string{"dec", "dcr"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			noBytes:  1,
+			noCycles: 4,
+		},
 		// 0x3e ld a,n
 		opcode{
 			mnemonic: []string{"ld", "mvi"},
@@ -1218,119 +1256,485 @@ var (
 			noCycles: 4,
 		},
 
-		// 0x80
-		opcode{},
-		// 0x81
-		opcode{},
-		// 0x82
-		opcode{},
-		// 0x83
-		opcode{},
-		// 0x84
-		opcode{},
-		// 0x85
-		opcode{},
-		// 0x86
-		opcode{},
-		// 0x87
-		opcode{},
-		// 0x88
-		opcode{},
-		// 0x89
-		opcode{},
-		// 0x8a
-		opcode{},
-		// 0x8b
-		opcode{},
-		// 0x8c
-		opcode{},
-		// 0x8d
-		opcode{},
-		// 0x8e
-		opcode{},
-		// 0x8f
-		opcode{},
+		// 0x80 add a,b
+		opcode{
+			mnemonic: []string{"add", "add"},
+			dst:      register,
+			dstR:     []string{"a", "b"},
+			src:      register,
+			srcR:     []string{"b"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x81 add a,c
+		opcode{
+			mnemonic: []string{"add", "add"},
+			dst:      register,
+			dstR:     []string{"a", "c"},
+			src:      register,
+			srcR:     []string{"c"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x82 add a,d
+		opcode{
+			mnemonic: []string{"add", "add"},
+			dst:      register,
+			dstR:     []string{"a", "d"},
+			src:      register,
+			srcR:     []string{"d"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x83 add a,e
+		opcode{
+			mnemonic: []string{"add", "add"},
+			dst:      register,
+			dstR:     []string{"a", "e"},
+			src:      register,
+			srcR:     []string{"e"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x84 add a,h
+		opcode{
+			mnemonic: []string{"add", "add"},
+			dst:      register,
+			dstR:     []string{"a", "h"},
+			src:      register,
+			srcR:     []string{"h"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x85 add a,l
+		opcode{
+			mnemonic: []string{"add", "add"},
+			dst:      register,
+			dstR:     []string{"a", "l"},
+			src:      register,
+			srcR:     []string{"l"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x86 add a,(hl)
+		opcode{
+			mnemonic: []string{"add", "add"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"a"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x85 add a,a
+		opcode{
+			mnemonic: []string{"add", "add"},
+			dst:      register,
+			dstR:     []string{"a", "l"},
+			src:      register,
+			srcR:     []string{"l"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x88 adc a,b
+		opcode{
+			mnemonic: []string{"add", "adc"},
+			dst:      register,
+			dstR:     []string{"a", "b"},
+			src:      register,
+			srcR:     []string{"b"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x89 adc a,c
+		opcode{
+			mnemonic: []string{"add", "adc"},
+			dst:      register,
+			dstR:     []string{"a", "c"},
+			src:      register,
+			srcR:     []string{"c"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x8a adc a,d
+		opcode{
+			mnemonic: []string{"add", "adc"},
+			dst:      register,
+			dstR:     []string{"a", "d"},
+			src:      register,
+			srcR:     []string{"d"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x8b adc a,e
+		opcode{
+			mnemonic: []string{"add", "adc"},
+			dst:      register,
+			dstR:     []string{"a", "e"},
+			src:      register,
+			srcR:     []string{"e"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x8c adc a,h
+		opcode{
+			mnemonic: []string{"add", "adc"},
+			dst:      register,
+			dstR:     []string{"a", "h"},
+			src:      register,
+			srcR:     []string{"h"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x8d adc a,l
+		opcode{
+			mnemonic: []string{"add", "adc"},
+			dst:      register,
+			dstR:     []string{"a", "l"},
+			src:      register,
+			srcR:     []string{"l"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x8e adc a,(hl)
+		opcode{
+			mnemonic: []string{"add", "adc"},
+			dst:      register,
+			dstR:     []string{"a", "m"},
+			src:      register,
+			srcR:     []string{"(hl)"},
+			noBytes:  1,
+			noCycles: 7,
+		},
+		// 0x8f adc a,a
+		opcode{
+			mnemonic: []string{"add", "adc"},
+			dst:      register,
+			dstR:     []string{"a", "l"},
+			src:      register,
+			srcR:     []string{"l"},
+			noBytes:  1,
+			noCycles: 4,
+		},
 
-		// 0x90
-		opcode{},
-		// 0x91
-		opcode{},
-		// 0x92
-		opcode{},
-		// 0x93
-		opcode{},
-		// 0x94
-		opcode{},
-		// 0x95
-		opcode{},
-		// 0x96
-		opcode{},
-		// 0x97 sub a
+		// 0x90 sub a,b
 		opcode{
 			mnemonic: []string{"sub", "sub"},
 			dst:      register,
 			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"b", "b"},
 			noBytes:  1,
 			noCycles: 4,
 		},
-		// 0x98
-		opcode{},
-		// 0x99
-		opcode{},
-		// 0x9a
-		opcode{},
-		// 0x9b
-		opcode{},
-		// 0x9c
-		opcode{},
-		// 0x9d
-		opcode{},
-		// 0x9e
-		opcode{},
-		// 0x9f
-		opcode{},
+		// 0x91 sub a,c
+		opcode{
+			mnemonic: []string{"sub", "sub"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"c", "c"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x92 0x91 sub a,d
+		opcode{
+			mnemonic: []string{"sub", "sub"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"d", "d"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x93 sub a,e
+		opcode{
+			mnemonic: []string{"sub", "sub"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"e", "e"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x94 sub a,h
+		opcode{
+			mnemonic: []string{"sub", "sub"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"h", "h"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x95 sub a,l
+		opcode{
+			mnemonic: []string{"sub", "sub"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"l", "l"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x96 sub a,(hl)
+		opcode{
+			mnemonic: []string{"sub", "sub"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      registerIndirect,
+			srcR:     []string{"hl", "m"},
+			noBytes:  1,
+			noCycles: 7,
+		},
+		// 0x97 sub a,a
+		opcode{
+			mnemonic: []string{"sub", "sub"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"a", "a"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x98 sbc a,b
+		opcode{
+			mnemonic: []string{"sbc", "sbc"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"b", "b"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x99 sbc a,c
+		opcode{
+			mnemonic: []string{"sbc", "sbc"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"c", "c"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x9a 0x91 sbc a,d
+		opcode{
+			mnemonic: []string{"sbc", "sbc"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"d", "d"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x9b sbc a,e
+		opcode{
+			mnemonic: []string{"sbc", "sbc"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"e", "e"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x9c sbc a,h
+		opcode{
+			mnemonic: []string{"sbc", "sbc"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"h", "h"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x9d sbc a,l
+		opcode{
+			mnemonic: []string{"sbc", "sbc"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"l", "l"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0x9e sbc a,(hl)
+		opcode{
+			mnemonic: []string{"sbc", "sbc"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      registerIndirect,
+			srcR:     []string{"hl", "m"},
+			noBytes:  1,
+			noCycles: 7,
+		},
+		// 0x9f sbc a
+		opcode{
+			mnemonic: []string{"sbc", "sbc"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"a", "a"},
+			noBytes:  1,
+			noCycles: 4,
+		},
 
-		// 0xa0
-		opcode{},
-		// 0xa1
-		opcode{},
-		// 0xa2
-		opcode{},
-		// 0xa3
-		opcode{},
-		// 0xa4
-		opcode{},
-		// 0xa5
-		opcode{},
-		// 0xa6
-		opcode{},
+		// 0xa0 and a,b
+		opcode{
+			mnemonic: []string{"and", "ana"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"b", "b"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0xa1 and a,c
+		opcode{
+			mnemonic: []string{"and", "ana"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"c", "c"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0xa2 and a,d
+		opcode{
+			mnemonic: []string{"and", "ana"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"d", "d"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0xa3 and a,e
+		opcode{
+			mnemonic: []string{"and", "ana"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"e", "e"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0xa4 and a,h
+		opcode{
+			mnemonic: []string{"and", "ana"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"h", "h"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0xa5 adn a,l
+		opcode{
+			mnemonic: []string{"and", "ana"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"l", "l"},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0xa6 and a,(hl)
+		opcode{
+			mnemonic: []string{"and", "ana"},
+			dst:      register,
+			dstR:     []string{"a", "a"},
+			src:      registerIndirect,
+			srcR:     []string{"hl", "m"},
+			noBytes:  1,
+			noCycles: 7,
+		},
 		// 0xa7 and a
 		opcode{
 			mnemonic: []string{"and", "ana"},
 			dst:      register,
-			dstR:     []string{"a", ""},
+			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"a", "a"},
 			noBytes:  1,
 			noCycles: 4,
 		},
-		// 0xa8
-		opcode{},
-		// 0xa9
-		opcode{},
-		// 0xaa
-		opcode{},
-		// 0xab
-		opcode{},
-		// 0xac
-		opcode{},
-		// 0xad
-		opcode{},
-		// 0xae
-		opcode{},
-		// 0xaf xor a
+		// 0xa8 xor a,b
+		opcode{
+			mnemonic: []string{"xor", "xra"},
+			dst:      register,
+			dstR:     []string{"a", "b"},
+			src:      register,
+			srcR:     []string{"b", ""},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0xa9 xor a,c
+		opcode{
+			mnemonic: []string{"xor", "xra"},
+			dst:      register,
+			dstR:     []string{"a", "c"},
+			src:      register,
+			srcR:     []string{"c", ""},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0xaa xor a,d
+		opcode{
+			mnemonic: []string{"xor", "xra"},
+			dst:      register,
+			dstR:     []string{"a", "d"},
+			src:      register,
+			srcR:     []string{"d", ""},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0xab xor a,e
+		opcode{
+			mnemonic: []string{"xor", "xra"},
+			dst:      register,
+			dstR:     []string{"a", "e"},
+			src:      register,
+			srcR:     []string{"e", ""},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0xac xor a,h
+		opcode{
+			mnemonic: []string{"xor", "xra"},
+			dst:      register,
+			dstR:     []string{"a", "h"},
+			src:      register,
+			srcR:     []string{"h", ""},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0xad xor a,l
+		opcode{
+			mnemonic: []string{"xor", "xra"},
+			dst:      register,
+			dstR:     []string{"a", "h"},
+			src:      register,
+			srcR:     []string{"h", ""},
+			noBytes:  1,
+			noCycles: 4,
+		},
+		// 0xae xor a,(hl)
+		opcode{
+			mnemonic: []string{"xor", "xra"},
+			dst:      register,
+			dstR:     []string{"a", "h"},
+			src:      registerIndirect,
+			srcR:     []string{"hl", "m"},
+			noBytes:  1,
+			noCycles: 7,
+		},
+		// 0xaf xor a,a
 		opcode{
 			mnemonic: []string{"xor", "xra"},
 			dst:      register,
 			dstR:     []string{"a", "a"},
+			src:      register,
+			srcR:     []string{"a", ""},
 			noBytes:  1,
 			noCycles: 4,
 		},
@@ -1506,10 +1910,12 @@ var (
 			noBytes:  1,
 			noCycles: 11,
 		},
-		// 0xc6 add i
+		// 0xc6 add a,i
 		opcode{
 			mnemonic: []string{"add", "adi"},
-			dst:      immediate,
+			dst:      register,
+			dstR:     []string{"a", ""},
+			src:      immediate,
 			noBytes:  2,
 			noCycles: 7,
 		},
@@ -1691,8 +2097,16 @@ var (
 			noBytes:  3,
 			noCycles: 10,
 		},
-		// 0xe3
-		opcode{},
+		// 0xe3 (sp),hl
+		opcode{
+			mnemonic: []string{"ex", "xthl"},
+			dst:      registerIndirect,
+			dstR:     []string{"sp", ""},
+			src:      register,
+			srcR:     []string{"hl"},
+			noBytes:  1,
+			noCycles: 19,
+		},
 		// 0xe4
 		opcode{},
 		// 0xe5 push hl

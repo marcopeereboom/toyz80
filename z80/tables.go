@@ -77,6 +77,16 @@ func (z *z80) add(val byte) {
 		sz53Table[a])
 }
 
+func (z *z80) adc(val byte) {
+	a := byte(z.af >> 8)
+	t := uint16(a) + uint16(val) + z.af&uint16(FLAG_C)
+	lookup := byte(uint16(a)&0x88>>3 | uint16(val)&0x88>>2 |
+		uint16(t)&0x88>>1)
+	z.af = uint16(t)<<8 | uint16(ternB((t&0x100) != 0, FLAG_C, 0)|
+		halfcarryAddTable[lookup&0x07]|overflowAddTable[lookup>>4]|
+		sz53Table[a])
+}
+
 func (z *z80) and(val byte) {
 	a := byte(z.af>>8) & val
 	z.af = uint16(a)<<8 | halfCarry | uint16(sz53pTable[a])
@@ -132,6 +142,15 @@ func (z *z80) srl(val byte) byte {
 	val >>= 1
 	z.af = uint16(f) | uint16(sz53pTable[val])
 	return val
+}
+
+func (z *z80) sbc(val byte) {
+	a := byte(z.af >> 8)
+	t := uint16(a) - uint16(val) - (z.af & uint16(FLAG_C))
+	lookup := a&0x88>>3 | val&0x88>>2 | byte(t&0x88>>1)
+	z.af = uint16(a)<<8 | uint16(ternB(t&0x100 != 0, FLAG_C, 0)|FLAG_N|
+		halfcarrySubTable[lookup&0x07]|overflowSubTable[lookup>>4]|
+		sz53Table[a])
 }
 
 func (z *z80) sub(val byte) {

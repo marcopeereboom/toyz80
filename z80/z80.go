@@ -192,6 +192,12 @@ func (z *z80) Step() error {
 		z.bc = uint16(z.dec(byte(z.bc>>8)))<<8 | z.bc&0x00ff
 	case 0x06: // ld b,n
 		z.bc = uint16(z.bus.Read(z.pc+1))<<8 | z.bc&0x00ff
+	case 0x07:
+		a := uint16(z.af>>8) << 1
+		f := a >> 9
+		z.af = a<<8 | f
+	case 0x09:
+		z.add16(z.hl, z.bc)
 	case 0x0a: // ld a,(bc)
 		z.af = uint16(z.bus.Read(z.bc))<<8 | z.af&0x00ff
 	case 0x0b: //dec bc
@@ -202,6 +208,10 @@ func (z *z80) Step() error {
 		z.bc = uint16(z.dec(byte(z.bc))) | z.bc&0xff00
 	case 0x0e: // ld c,n
 		z.bc = uint16(z.bus.Read(z.pc+1)) | z.bc&0xff00
+	case 0x0f:
+		a := uint16(z.af >> 1)
+		f := ternB(a&0x80 == 0x80, byte(carry), 0)
+		z.af = a | uint16(f)
 	case 0x11: // ld de,nn
 		z.de = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
 	case 0x12: // ld (de),a
@@ -254,6 +264,8 @@ func (z *z80) Step() error {
 		}
 		// XXX make this generic
 		z.totalCycles += 7
+	case 0x29: // add hl,hl
+		z.hl = z.add16(z.hl, z.hl)
 	case 0x2a: // ld (hl),nn
 		addr := uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
 		z.hl = uint16(z.bus.Read(addr)) | uint16(z.bus.Read(addr+1))<<8
@@ -301,6 +313,10 @@ func (z *z80) Step() error {
 		z.af &^= halfCarry
 		z.af &^= addsub
 		z.af |= carry
+	case 0x39: // add hl,sp
+		z.hl = z.add16(z.hl, z.sp)
+	case 0x3d: // dec a
+		z.af = uint16(z.dec(byte(z.af>>8)))<<8 | z.af&0x00ff
 	case 0x3f: // ccf
 		// Condition Bits Affected
 		// S is not affected.
@@ -455,10 +471,98 @@ func (z *z80) Step() error {
 		z.af = uint16(z.bus.Read(z.hl))<<8 | z.af&0x00ff
 	case 0x7f: // ld a,a
 		// nothing to do
+	case 0x80: // add a,b
+		z.add(byte(z.bc >> 8))
+	case 0x81: // add a,c
+		z.add(byte(z.bc))
+	case 0x82: // add a,d
+		z.add(byte(z.de >> 8))
+	case 0x83: // add a,e
+		z.add(byte(z.de))
+	case 0x84: // add a,h
+		z.add(byte(z.hl >> 8))
+	case 0x85: // add a,l
+		z.add(byte(z.hl))
+	case 0x86: // add a,(hl)
+		z.add(z.bus.Read(z.hl))
+	case 0x87: // add a,a
+		z.add(byte(z.af >> 8))
+	case 0x88: // adc a,b
+		z.adc(byte(z.bc >> 8))
+	case 0x89: // adc a,c
+		z.adc(byte(z.bc))
+	case 0x8a: // adc a,d
+		z.adc(byte(z.de) >> 8)
+	case 0x8b: // adc a,e
+		z.adc(byte(z.de))
+	case 0x8c: // adc a,h
+		z.adc(byte(z.hl >> 8))
+	case 0x8d: // adc a,l
+		z.adc(byte(z.hl))
+	case 0x8e: // adc a,(hl)
+		z.adc(z.bus.Read(z.hl))
+	case 0x8f: // adc a,a
+		z.adc(byte(z.af >> 8))
+	case 0x90: // sub a,b
+		z.sub(byte(z.bc >> 8))
+	case 0x91: // sub a,c
+		z.sub(byte(z.bc))
+	case 0x92: // sub a,d
+		z.sub(byte(z.de >> 8))
+	case 0x93: // sub a,e
+		z.sub(byte(z.de))
+	case 0x94: // sub a,h
+		z.sub(byte(z.hl >> 8))
+	case 0x95: // sub a,l
+		z.sub(byte(z.hl))
+	case 0x96: // sub a,(hl)
+		z.sub(z.bus.Read(z.hl))
 	case 0x97: // sub a
 		z.sub(byte(z.af >> 8))
-	case 0xa7: // and a
+	case 0x98: // sbc a,b
+		z.sbc(byte(z.bc >> 8))
+	case 0x99: // sbc a,c
+		z.sbc(byte(z.bc))
+	case 0x9a: // sbc a,d
+		z.sbc(byte(z.de >> 8))
+	case 0x9b: // sbc a,e
+		z.sbc(byte(z.de))
+	case 0x9c: // sbc a,h
+		z.sbc(byte(z.hl >> 8))
+	case 0x9d: // sbc a,l
+		z.sbc(byte(z.hl))
+	case 0x9e: // sbc a,(hl)
+		z.sbc(z.bus.Read(z.hl))
+	case 0x9f: // sbc a
+		z.sbc(byte(z.af >> 8))
+	case 0xa0: // and a,b
+		z.and(byte(z.bc >> 8))
+	case 0xa1: // and a,c
+		z.and(byte(z.bc))
+	case 0xa2: // and a,d
+		z.and(byte(z.de >> 8))
+	case 0xa3: // and a,e
+		z.and(byte(z.de))
+	case 0xa4: // and a,h
+		z.and(byte(z.hl >> 8))
+	case 0xa5: // and a,l
+		z.and(byte(z.hl))
+	case 0xa7: // and a,a
 		z.and(byte(z.af >> 8))
+	case 0xa8: // xor a,b
+		z.xor(byte(z.bc >> 8))
+	case 0xa9: // xor a,c
+		z.xor(byte(z.bc))
+	case 0xaa: // xor a,d
+		z.xor(byte(z.de >> 8))
+	case 0xab: // xor a,d
+		z.xor(byte(z.de))
+	case 0xac: // xor a,h
+		z.xor(byte(z.hl >> 8))
+	case 0xad: // xor a,l
+		z.xor(byte(z.hl))
+	case 0xae: // xor a,(hl)
+		z.xor(z.bus.Read(z.hl))
 	case 0xaf: // xor a
 		z.xor(byte(z.af >> 8))
 	case 0xb0: // or b
@@ -525,7 +629,7 @@ func (z *z80) Step() error {
 		z.bus.Write(z.sp, byte(z.bc>>8))
 		z.sp--
 		z.bus.Write(z.sp, byte(z.bc))
-	case 0xc6: // add i
+	case 0xc6: // add a,i
 		z.add(z.bus.Read(z.pc + 1))
 	case 0xc7: // rst $0
 		retPC := z.pc + opcodeStruct.noBytes
@@ -708,6 +812,12 @@ func (z *z80) Step() error {
 			z.totalCycles += opcodeStruct.noCycles
 			return nil
 		}
+	case 0xe3: // ex sp,hl
+		h := z.bus.Read(z.sp + 1)
+		l := z.bus.Read(z.sp)
+		z.bus.Write(z.pc, byte(z.hl>>8))
+		z.bus.Write(z.pc+1, byte(z.hl))
+		z.hl = uint16(h)<<8 | uint16(l)
 	case 0xe5: // push hl
 		z.sp--
 		z.bus.Write(z.sp, byte(z.hl>>8))
