@@ -197,15 +197,15 @@ func (z *z80) Step() error {
 	case 0x06: // ld b,n
 		z.bc = uint16(z.bus.Read(z.pc+1))<<8 | z.bc&0x00ff
 	case 0x07:
-		a := uint16(z.af>>8) << 1
-		f := a >> 9
-		z.af = a<<8 | f
+		a := z.af >> 8 << 1
+		f := z.af&(sign|zero|parity|unused|unused2) | a>>8
+		z.af = (a>>8|a)<<8 | f
 	case 0x08:
 		t := z.af
 		z.af = z.af_
 		z.af_ = t
 	case 0x09:
-		z.add16(z.hl, z.bc)
+		z.hl = z.add16(z.hl, z.bc)
 	case 0x0a: // ld a,(bc)
 		z.af = uint16(z.bus.Read(z.bc))<<8 | z.af&0x00ff
 	case 0x0b: //dec bc
@@ -589,8 +589,8 @@ func (z *z80) Step() error {
 		z.or(z.bus.Read(z.hl))
 	case 0xb7: // or a
 		z.or(byte(z.af >> 8))
-	case 0xb8: // sub b
-		z.sub(byte(z.bc >> 8))
+	case 0xb8: // cp b
+		z.cp(byte(z.bc >> 8))
 	case 0xb9: // cp c
 		z.cp(byte(z.bc))
 	case 0xba: // cp d
@@ -637,6 +637,20 @@ func (z *z80) Step() error {
 		z.bus.Write(z.sp, byte(z.bc>>8))
 		z.sp--
 		z.bus.Write(z.sp, byte(z.bc))
+	case 0xc4: //call nz
+		if z.af&zero == 0 {
+			retPC := z.pc + opcodeStruct.noBytes
+			z.sp--
+			z.bus.Write(z.sp, byte(retPC>>8))
+			z.sp--
+			z.bus.Write(z.sp, byte(retPC))
+
+			z.pc = uint16(z.bus.Read(z.pc+1)) |
+				uint16(z.bus.Read(z.pc+2))<<8
+
+			z.totalCycles += 17
+			return nil
+		}
 	case 0xc6: // add a,i
 		z.add(z.bus.Read(z.pc + 1))
 	case 0xc7: // rst $0
@@ -822,11 +836,11 @@ func (z *z80) Step() error {
 			z.totalCycles += opcodeStruct.noCycles
 			return nil
 		}
-	case 0xe3: // ex sp,hl
+	case 0xe3: // ex (sp),hl
 		h := z.bus.Read(z.sp + 1)
 		l := z.bus.Read(z.sp)
-		z.bus.Write(z.pc, byte(z.hl>>8))
-		z.bus.Write(z.pc+1, byte(z.hl))
+		z.bus.Write(z.sp+1, byte(z.hl>>8))
+		z.bus.Write(z.sp, byte(z.hl))
 		z.hl = uint16(h)<<8 | uint16(l)
 	case 0xe5: // push hl
 		z.sp--
@@ -908,6 +922,16 @@ func (z *z80) Step() error {
 
 		z.totalCycles += opcodeStruct.noCycles
 		return nil
+	case 0xf0: // ret p
+		if z.af&parity == parity {
+			pc := uint16(z.bus.Read(z.sp))
+			z.sp++
+			pc = uint16(z.bus.Read(z.sp))<<8 | pc&0x00ff
+			z.sp++
+			z.totalCycles += 11 // XXX
+			z.pc = pc
+			return nil
+		}
 	case 0xf1: // pop af
 		z.af = uint16(z.bus.Read(z.sp)) | z.af&0xff00
 		z.sp++
@@ -1072,6 +1096,8 @@ func (z *z80) DisassembleComponents(address uint16) (mnemonic string, dst string
 		dst = o.dstR[z.mode]
 	case indirect:
 		dst = fmt.Sprintf("($%02x)", p[1])
+	case implied:
+		dst = o.dstR[z.mode]
 	}
 
 	switch o.src {

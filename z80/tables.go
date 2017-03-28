@@ -53,28 +53,23 @@ var overflowSubTable = []byte{0, FLAG_V, 0, 0, 0, 0, FLAG_V, 0}
 
 var sz53Table, sz53pTable, parityTable [0x100]byte
 
-func (z *z80) add16(value1, value2 uint16) uint16 {
-	t := uint(value1) + uint(value2)
-	lookup := byte(((value1 & 0x0800) >> 11) | ((value2 & 0x0800) >> 10) |
-		(uint16(t)&0x0800)>>9)
-	z.af = z.af&0xff00 | uint16(ternB((t&0x10000) != 0, FLAG_C, 0)|
-		(byte(t>>8)&(FLAG_3|FLAG_5))|halfcarryAddTable[lookup])
+func (z *z80) add16(v1, v2 uint16) uint16 {
+	t := uint(v1) + uint(v2)
+	lookup := byte(v1&0x0800>>11 | v2&0x0800>>10 | uint16(t)&0x0800>>9)
+	f := z.af&uint16(FLAG_V|FLAG_Z|FLAG_S) |
+		uint16(ternB(t&0x10000 != 0, FLAG_C, 0)|
+			(byte(t>>8)&(FLAG_3|FLAG_5))|halfcarryAddTable[lookup])
+	z.af = z.af&0xff00 | f
 	return uint16(t)
-	//var add16temp uint = uint(value1.get()) + uint(value2)
-	//var lookup byte = byte(((value1.get() & 0x0800) >> 11) | ((value2 & 0x0800) >> 10) | (uint16(add16temp)&0x0800)>>9)
-
-	//value1.set(uint16(add16temp))
-
-	//z80.F = (z80.F & (FLAG_V | FLAG_Z | FLAG_S)) | ternOpB((add16temp&0x10000) != 0, FLAG_C, 0) | (byte(add16temp>>8) & (FLAG_3 | FLAG_5)) | halfcarryAddTable[lookup]
 }
 
 func (z *z80) add(val byte) {
 	a := byte(z.af >> 8)
-	t := uint(a) + uint(val)
+	t := uint16(a) + uint16(val)
 	lookup := a&0x88>>3 | val&0x88>>2 | byte(t&0x88>>1)
-	z.af = uint16(byte(t))<<8 | uint16(ternB(t&0x100 != 0, FLAG_C, 0)|
-		halfcarryAddTable[lookup&0x07]|overflowAddTable[lookup>>4]|
-		sz53Table[a])
+	f := ternB(t&0x100 != 0, FLAG_C, 0) | halfcarryAddTable[lookup&0x07] |
+		overflowAddTable[lookup>>4] | sz53Table[byte(t)]
+	z.af = t<<8 | uint16(f)
 }
 
 func (z *z80) adc(val byte) {

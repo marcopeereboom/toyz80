@@ -203,7 +203,7 @@ var (
 			mnemonic: []string{"add", "dad"},
 			dst:      register,
 			dstR:     []string{"hl", "b"},
-			src:      registerIndirect,
+			src:      register,
 			srcR:     []string{"bc", ""},
 			noBytes:  1,
 			noCycles: 11,
@@ -450,7 +450,7 @@ var (
 			mnemonic: []string{"add", "dad"},
 			dst:      register,
 			dstR:     []string{"hl", "h"},
-			src:      registerIndirect,
+			src:      register,
 			srcR:     []string{"hl", ""},
 			noBytes:  1,
 			noCycles: 11,
@@ -1811,9 +1811,9 @@ var (
 			noBytes:  1,
 			noCycles: 4,
 		},
-		// 0xb8
+		// 0xb8 cp b
 		opcode{
-			mnemonic: []string{"sub", "sub"},
+			mnemonic: []string{"cp", "cmp"},
 			dst:      register,
 			dstR:     []string{"b", "b"},
 			noBytes:  1,
@@ -1908,8 +1908,15 @@ var (
 			noBytes:  3,
 			noCycles: 10,
 		},
-		// 0xc4
-		opcode{},
+		// 0xc4 call nz
+		opcode{
+			mnemonic: []string{"call", "call"},
+			dst:      condition,
+			dstR:     []string{"nz", ""},
+			src:      immediateExtended,
+			noBytes:  3,
+			noCycles: 10,
+		},
 		// 0xc5 push bc
 		opcode{
 			mnemonic: []string{"push", "push"},
@@ -1973,11 +1980,11 @@ var (
 		},
 		// 0xce adc a,i
 		opcode{
-			mnemonic: []string{"add", "aci"},
+			mnemonic: []string{"adc", "aci"},
 			dst:      register,
 			dstR:     []string{"a"},
 			src:      immediate,
-			noBytes:  1,
+			noBytes:  2,
 			noCycles: 7,
 		},
 		// 0xcf rst $08
@@ -2193,8 +2200,14 @@ var (
 			noCycles: 11,
 		},
 
-		// 0xf0
-		opcode{},
+		// 0xf0 ret p
+		opcode{
+			mnemonic: []string{"ret", "rp"},
+			dst:      condition,
+			dstR:     []string{"p", ""},
+			noBytes:  1,
+			noCycles: 5,
+		},
 		// 0xf1 pop af
 		opcode{
 			mnemonic: []string{"pop", "pop"},
