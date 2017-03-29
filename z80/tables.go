@@ -118,13 +118,6 @@ func (z *z80) or(val byte) {
 	z.af = uint16(a)<<8 | uint16(sz53pTable[a])
 }
 
-func (z *z80) rr(val byte) byte {
-	t := val
-	val = val>>1 | byte(z.af)<<7
-	z.af = z.af&0xff00 | uint16(t&FLAG_C) | uint16(sz53pTable[val])
-	return val
-}
-
 func (z *z80) sla(val byte) byte {
 	f := val >> 7
 	val <<= 1
