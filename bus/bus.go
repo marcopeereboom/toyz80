@@ -178,3 +178,10 @@ func (b *Bus) WriteMemory(address uint16, data []byte) error {
 	copy(b.memory[address:], data[:])
 	return nil
 }
+
+// Dump returns a dump of memory starting at the provided address and length.
+func (b *Bus) Dump(addr, count uint16) []byte {
+	buf := make([]byte, count)
+	copy(buf, b.memory[addr:addr+count])
+	return buf
+}

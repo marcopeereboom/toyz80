@@ -518,7 +518,7 @@ var (
 		// 0x32 ld (nn),a
 		opcode{
 			mnemonic: []string{"ld", "sta"},
-			dst:      immediateExtended,
+			dst:      extended,
 			src:      register,
 			srcR:     []string{"a", ""},
 			noBytes:  3,
@@ -2258,8 +2258,16 @@ var (
 		},
 		// 0xf8
 		opcode{},
-		// 0xf9
-		opcode{},
+		// 0xf9 ld sp,hl
+		opcode{
+			mnemonic: []string{"ld", "sphl"},
+			dst:      register,
+			dstR:     []string{"sp"},
+			src:      register,
+			srcR:     []string{"hl"},
+			noBytes:  1,
+			noCycles: 6,
+		},
 		// 0xfa jp m,nn
 		opcode{
 			mnemonic: []string{"jp", "jm"},

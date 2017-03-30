@@ -1395,7 +1395,7 @@ func TestInstructions(t *testing.T) {
 					z.af&halfCarry == halfCarry
 			},
 		},
-		// 0x31 ld sp,nn
+		// 0x31
 		{
 
 			name: "ld sp,nn",
@@ -1412,7 +1412,7 @@ func TestInstructions(t *testing.T) {
 
 			name: "ld (nn),a",
 			mn:   "ld",
-			dst:  "$ffee",
+			dst:  "($ffee)",
 			src:  "a",
 			data: []byte{0x32, 0xee, 0xff},
 			init: func(z *z80) {
@@ -1810,11 +1810,12 @@ func TestInstructions(t *testing.T) {
 			src:  "($55aa)",
 			data: []byte{0x3a, 0xaa, 0x55},
 			init: func(z *z80) {
+				z.af = 0x3344
 				z.bus.Write(0x55aa, 0xff)
 			},
 			expect: func(z *z80) bool {
-				return z.bus.Read(0x55aa) == byte(z.af>>8) &&
-					z.af == 0xff00 && z.pc == 0x0003
+				return z.bus.Read(0x55aa) == 0xff &&
+					z.af == 0xff44 && z.pc == 0x0003
 			},
 		},
 		// 0x3e

@@ -5,7 +5,7 @@ This is a toy.  It is not complete so don't use it, yet!  Do send me PRs!
 
 The idea is to get to CP/M 2.2 compatibility and then build this fictional computer in actual hardware.
 
-Currently UT (Unit Test) is rigged in and there is a basic Z80 computer being emulated with minimal opcode support.
+Currently UT (Unit Test) is rigged in and there is a basic Z80 computer being emulated that has a console and supports about 75% of the opcodes.
 
 In order to play with this code follow the following steps:
 1. Install Go.
@@ -26,4 +26,19 @@ If it works, send me a PR.
 There now is a minimal implementation of a fictional computer.  In order to play with it follow these steps:
 1. cd $GOPATH/src/github.com/marcopeereboom/toyz80
 2. go build
-3. ./toyz80
+3. ./toyz80 device=console,0x02-0x02 device=ram,0x0000-65536 load=0,src/cpuville/tinybasic2dms.bin
+
+This launches the toy z80 computer with tiny basic at address 0.  The machine will now wait for you to connect the console.  The console is a unix socket hard coded at /tmp/toyz80.socket.  Connecting to this socket can be done using socat in the following manner: "socat /dev/tty,rawer UNIX-CLIENT:/tmp/toyz80.socket".  The console is where the machine output goes.
+
+At this point the z80 computer is ready to be either started or debugged etc.
+
+Currently the following commands are supported in the control window:
+* mode <emacs|vi>
+* bp [set|del address]
+* continue
+* disassemble [address [count]]
+* dump [address [count]]
+* pause
+* registers
+* step [count]
+* pc <address>

@@ -13,6 +13,14 @@ var (
 	//ErrInvalidInstruction = errors.New("invalid instruction")
 )
 
+type BreakpointError struct {
+	PC uint16
+}
+
+func (bp BreakpointError) Error() string {
+	return fmt.Sprintf("breakpoint: $%04x", bp.PC)
+}
+
 type CPUMode int
 
 const (
@@ -55,6 +63,9 @@ type z80 struct {
 	totalCycles uint64 // Total cycles used
 
 	mode CPUMode // Mode CPU is running
+
+	debug bool                // debug mode enabled
+	bp    map[uint16]struct{} // break points
 }
 
 // DumpRegisters returns a dump of all registers.
@@ -111,7 +122,36 @@ func New(mode CPUMode, bus *bus.Bus) (*z80, error) {
 	return &z80{
 		mode: mode,
 		bus:  bus,
+		bp:   make(map[uint16]struct{}),
 	}, nil
+}
+
+func (z *z80) GetBreakPoints() []uint16 {
+	if !z.debug {
+		return []uint16{}
+	}
+
+	bps := make([]uint16, 0, len(z.bp))
+	for address := range z.bp {
+		bps = append(bps, address)
+	}
+	return bps
+}
+
+func (z *z80) SetBreakPoint(address uint16) {
+	z.bp[address] = struct{}{}
+	z.debug = true
+}
+
+func (z *z80) DelBreakPoint(address uint16) {
+	delete(z.bp, address)
+	if len(z.bp) == 0 {
+		z.debug = false
+	}
+}
+
+func (z *z80) SetPC(address uint16) {
+	z.pc = address
 }
 
 // Reset resets the CPU.  If cold is true then memory is zeroed.
@@ -167,8 +207,27 @@ func (z *z80) genericPostInstruction(o *opcode) {
 	z.pc += uint16(o.noBytes)
 }
 
-// Step executes the instruction as pointed at by PC.
 func (z *z80) Step() error {
+	err := z.step()
+	if err != nil {
+		return err
+	}
+
+	if !z.debug {
+		return nil
+	}
+
+	// see if we hit a break point
+	if _, ok := z.bp[z.pc]; ok {
+		return BreakpointError{PC: z.pc}
+	}
+
+	return nil
+}
+
+// Step executes the instruction as pointed at by PC.
+func (z *z80) step() error {
+
 	// This is a little messy because of multi-byte opcodes.  We assume the
 	// opcode is one byte and we change in the switch statement to contain
 	// the *actual* opcode in order to calculate cycles etc.
@@ -348,7 +407,7 @@ func (z *z80) Step() error {
 		z.af &^= addsub
 	case 0x3a: // ld a,(nn)
 		z.af = uint16(z.bus.Read(uint16(z.bus.Read(z.pc+1))|
-			uint16(z.bus.Read(z.pc+2))<<8)) << 8
+			uint16(z.bus.Read(z.pc+2))<<8))<<8 | z.af&0x00ff
 	case 0x3b: //dec sp
 		z.sp -= 1
 	case 0x3c: // inc a
@@ -970,6 +1029,8 @@ func (z *z80) Step() error {
 
 		z.totalCycles += opcodeStruct.noCycles
 		return nil
+	case 0xf9: // ld sp,hl
+		z.sp = z.hl
 	case 0xfa: // jp m,nn
 		if z.af&sign == sign {
 			z.pc = uint16(z.bus.Read(z.pc+1)) |
@@ -1129,14 +1190,15 @@ func (z *z80) DisassembleComponents(address uint16) (mnemonic string, dst string
 	noBytes = int(o.noBytes)
 	retErr = nil
 	if len(o.mnemonic) == 0 {
+		noBytes = 1
 		switch p[0] {
 		case 0xcb, 0xdd, 0xed, 0xfd:
-			mnemonic = fmt.Sprintf("%02x %02x", p[0], p[1])
+			opc = fmt.Sprintf("%02x %02x", p[0], p[1])
 			noBytes = 2
 		default:
-			mnemonic = fmt.Sprintf("%02x", p[0])
-			noBytes = 1
+			opc = fmt.Sprintf("%02x", p[0])
 		}
+		mnemonic = "INVALID"
 		retErr = fmt.Errorf("%04x: %v INVALID", address, mnemonic)
 	} else {
 		switch noBytes {
