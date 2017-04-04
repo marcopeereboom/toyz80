@@ -764,9 +764,10 @@ func TestInstructions(t *testing.T) {
 			dst:  "hl",
 			src:  "de",
 			data: []byte{0x19},
-			init: func(z *z80) { z.de = 0x1000; z.hl = 0x1000 },
+			init: func(z *z80) { z.de = 0x1234; z.hl = 0x4321 },
 			expect: func(z *z80) bool {
-				return z.pc == 0x0001 && z.hl == 0x2000 &&
+				return z.pc == 0x0001 && z.hl == 0x5555 &&
+					z.de == 0x1234 &&
 					z.af&sign == 0 &&
 					z.af&zero == 0 &&
 					z.af&halfCarry == 0 &&
@@ -1388,11 +1389,9 @@ func TestInstructions(t *testing.T) {
 			name: "cpl",
 			mn:   "cpl",
 			data: []byte{0x2f},
-			init: func(z *z80) { z.af = 0xa500 },
+			init: func(z *z80) { z.af = 0xa5ff &^ (addsub | halfCarry); fmt.Printf("z.af %04x\n", z.af) },
 			expect: func(z *z80) bool {
-				return z.af&0xff00 == 0x5a00 && z.pc == 0x0001 &&
-					z.af&addsub == addsub &&
-					z.af&halfCarry == halfCarry
+				return z.af&0xffff == 0x5aff && z.pc == 0x0001
 			},
 		},
 		// 0x31

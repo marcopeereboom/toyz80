@@ -263,7 +263,7 @@ func (z *z80) step() error {
 		t := z.af
 		z.af = z.af_
 		z.af_ = t
-	case 0x09:
+	case 0x09: // add hl,bc
 		z.hl = z.add16(z.hl, z.bc)
 	case 0x0a: // ld a,(bc)
 		z.af = uint16(z.bus.Read(z.bc))<<8 | z.af&0x00ff
@@ -311,8 +311,8 @@ func (z *z80) step() error {
 		z.de = uint16(z.bus.Read(z.pc+1)) | z.de&0xff00
 	case 0x1f: // rar
 		a := z.af&0xff00>>1 | z.af<<15
-		f := z.af&(sign|zero|parity) | uint16(ternB(a&0x80 == 0x80,
-			byte(carry), 0))
+		f := z.af&(sign|zero|parity|unused|unused2) |
+			uint16(ternB(a&0x80 == 0x80, byte(carry), 0))
 		z.af = a | f
 	case 0x21: // ld hl,nn
 		z.hl = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
@@ -427,9 +427,9 @@ func (z *z80) step() error {
 	case 0x45: //ld b,l
 		z.bc = z.bc&0x00ff | z.hl<<8
 	case 0x46: //ld b,(hl)
-		z.bc = uint16(z.bus.Read(z.hl))<<8 | z.bc&0x00ff
+		z.bc = z.bc&0x00ff | uint16(z.bus.Read(z.hl))<<8
 	case 0x47: // ld b,a
-		z.bc = z.af&0xff00 | z.bc&0x00ff
+		z.bc = z.bc&0x00ff | z.af&0xff00
 	case 0x48: // ld c,b
 		z.bc = z.bc>>8 | z.bc&0xff00
 	case 0x49: //ld c,c
@@ -443,11 +443,11 @@ func (z *z80) step() error {
 	case 0x4d: // ld c,l
 		z.bc = z.bc&0xff00 | z.hl&0x00ff
 	case 0x4e: //ld c,(hl)
-		z.bc = uint16(z.bus.Read(z.hl)) | z.bc&0xff00
+		z.bc = z.bc&0xff00 | uint16(z.bus.Read(z.hl))
 	case 0x4f: // ld c,a
 		z.bc = z.bc&0xff00 | z.af>>8
 	case 0x50: // ld d,b
-		z.de = z.bc&0xff00 | z.de&0x00ff
+		z.de = z.de&0x00ff | z.bc&0xff00
 	case 0x51: // ld d,c
 		z.de = z.bc<<8 | z.de&0x00ff
 	case 0x52: // ld d,d
