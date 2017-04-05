@@ -109,7 +109,7 @@ var (
 			src:      register,
 			srcR:     []string{"ixh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0x85: {
 			mnemonic: []string{"add"},
@@ -118,7 +118,16 @@ var (
 			src:      register,
 			srcR:     []string{"ixl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0x86: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      indexed,
+			srcR:     []string{"ix"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0x8c: {
 			mnemonic: []string{"adc"},
@@ -127,7 +136,7 @@ var (
 			src:      register,
 			srcR:     []string{"ixh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0x8d: {
 			mnemonic: []string{"adc"},
@@ -136,7 +145,16 @@ var (
 			src:      register,
 			srcR:     []string{"ixl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0x8e: {
+			mnemonic: []string{"adc"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      indexed,
+			srcR:     []string{"ix"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0x94: {
 			mnemonic: []string{"sub"},
@@ -145,7 +163,7 @@ var (
 			src:      register,
 			srcR:     []string{"ixh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0x95: {
 			mnemonic: []string{"sub"},
@@ -154,7 +172,16 @@ var (
 			src:      register,
 			srcR:     []string{"ixl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0x96: {
+			mnemonic: []string{"sub"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      indexed,
+			srcR:     []string{"ix"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0x9c: {
 			mnemonic: []string{"sbc"},
@@ -163,7 +190,7 @@ var (
 			src:      register,
 			srcR:     []string{"ixh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0x9d: {
 			mnemonic: []string{"sbc"},
@@ -172,7 +199,16 @@ var (
 			src:      register,
 			srcR:     []string{"ixl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0x9e: {
+			mnemonic: []string{"sbc"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      indexed,
+			srcR:     []string{"ix"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0xa4: {
 			mnemonic: []string{"and"},
@@ -181,7 +217,7 @@ var (
 			src:      register,
 			srcR:     []string{"ixh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0xa5: {
 			mnemonic: []string{"and"},
@@ -190,7 +226,14 @@ var (
 			src:      register,
 			srcR:     []string{"ixl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0xa6: {
+			mnemonic: []string{"and"},
+			dst:      indexed,
+			dstR:     []string{"ix"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0xac: {
 			mnemonic: []string{"xor"},
@@ -199,7 +242,7 @@ var (
 			src:      register,
 			srcR:     []string{"ixh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0xad: {
 			mnemonic: []string{"xor"},
@@ -208,7 +251,14 @@ var (
 			src:      register,
 			srcR:     []string{"ixl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0xae: {
+			mnemonic: []string{"xor"},
+			dst:      indexed,
+			dstR:     []string{"ix"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0xb4: {
 			mnemonic: []string{"or"},
@@ -217,7 +267,7 @@ var (
 			src:      register,
 			srcR:     []string{"ixh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0xb5: {
 			mnemonic: []string{"or"},
@@ -226,7 +276,14 @@ var (
 			src:      register,
 			srcR:     []string{"ixl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0xb6: {
+			mnemonic: []string{"or"},
+			dst:      indexed,
+			dstR:     []string{"ix"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0xbc: {
 			mnemonic: []string{"cp"},
@@ -235,7 +292,7 @@ var (
 			src:      register,
 			srcR:     []string{"ixh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0xbd: {
 			mnemonic: []string{"cp"},
@@ -244,7 +301,14 @@ var (
 			src:      register,
 			srcR:     []string{"ixl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0xbe: {
+			mnemonic: []string{"cp"},
+			dst:      indexed,
+			dstR:     []string{"ix"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0xe1: opcode{
 			mnemonic: []string{"pop"},
@@ -419,7 +483,7 @@ var (
 			src:      register,
 			srcR:     []string{"iyh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0x85: {
 			mnemonic: []string{"add"},
@@ -428,7 +492,16 @@ var (
 			src:      register,
 			srcR:     []string{"iyl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0x86: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      indexed,
+			srcR:     []string{"iy"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0x8c: {
 			mnemonic: []string{"adc"},
@@ -437,7 +510,7 @@ var (
 			src:      register,
 			srcR:     []string{"iyh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0x8d: {
 			mnemonic: []string{"adc"},
@@ -446,7 +519,16 @@ var (
 			src:      register,
 			srcR:     []string{"iyl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0x8e: {
+			mnemonic: []string{"adc"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      indexed,
+			srcR:     []string{"iy"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0x94: {
 			mnemonic: []string{"sub"},
@@ -455,7 +537,7 @@ var (
 			src:      register,
 			srcR:     []string{"iyh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0x95: {
 			mnemonic: []string{"sub"},
@@ -464,7 +546,16 @@ var (
 			src:      register,
 			srcR:     []string{"iyl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0x96: {
+			mnemonic: []string{"sub"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      indexed,
+			srcR:     []string{"iy"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0x9c: {
 			mnemonic: []string{"sbc"},
@@ -473,7 +564,7 @@ var (
 			src:      register,
 			srcR:     []string{"iyh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0x9d: {
 			mnemonic: []string{"sbc"},
@@ -482,7 +573,16 @@ var (
 			src:      register,
 			srcR:     []string{"iyl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0x9e: {
+			mnemonic: []string{"sbc"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      indexed,
+			srcR:     []string{"iy"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0xa4: {
 			mnemonic: []string{"and"},
@@ -491,7 +591,7 @@ var (
 			src:      register,
 			srcR:     []string{"iyh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0xa5: {
 			mnemonic: []string{"and"},
@@ -500,7 +600,14 @@ var (
 			src:      register,
 			srcR:     []string{"iyl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0xa6: {
+			mnemonic: []string{"and"},
+			dst:      indexed,
+			dstR:     []string{"iy"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0xac: {
 			mnemonic: []string{"xor"},
@@ -509,7 +616,7 @@ var (
 			src:      register,
 			srcR:     []string{"iyh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0xad: {
 			mnemonic: []string{"xor"},
@@ -518,7 +625,14 @@ var (
 			src:      register,
 			srcR:     []string{"iyl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0xae: {
+			mnemonic: []string{"xor"},
+			dst:      indexed,
+			dstR:     []string{"iy"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0xb4: {
 			mnemonic: []string{"or"},
@@ -527,7 +641,7 @@ var (
 			src:      register,
 			srcR:     []string{"iyh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0xb5: {
 			mnemonic: []string{"or"},
@@ -536,7 +650,14 @@ var (
 			src:      register,
 			srcR:     []string{"iyl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0xb6: {
+			mnemonic: []string{"or"},
+			dst:      indexed,
+			dstR:     []string{"iy"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0xbc: {
 			mnemonic: []string{"cp"},
@@ -545,7 +666,7 @@ var (
 			src:      register,
 			srcR:     []string{"iyh"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
 		},
 		0xbd: {
 			mnemonic: []string{"cp"},
@@ -554,7 +675,14 @@ var (
 			src:      register,
 			srcR:     []string{"iyl"},
 			noBytes:  2,
-			noCycles: 0x10, // XXX guess
+			noCycles: 10, // XXX guess
+		},
+		0xbe: {
+			mnemonic: []string{"cp"},
+			dst:      indexed,
+			dstR:     []string{"iy"},
+			noBytes:  3,
+			noCycles: 19,
 		},
 		0xe1: opcode{
 			mnemonic: []string{"pop"},
@@ -2422,8 +2550,15 @@ var (
 		opcode{
 			multiByte: true,
 		},
-		// 0xcc
-		opcode{},
+		// 0xcc call z
+		opcode{
+			mnemonic: []string{"call", "call"},
+			dst:      condition,
+			dstR:     []string{"z", ""},
+			src:      immediateExtended,
+			noBytes:  3,
+			noCycles: 10,
+		},
 		// 0xcd call nn
 		opcode{
 			mnemonic: []string{"call", "call"},

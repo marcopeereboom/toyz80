@@ -770,6 +770,20 @@ func (z *z80) step() error {
 				z.pc)
 			//return ErrInvalidInstruction
 		}
+	case 0xcc: //call z,nn
+		if z.af&zero == zero {
+			retPC := z.pc + opcodeStruct.noBytes
+			z.sp--
+			z.bus.Write(z.sp, byte(retPC>>8))
+			z.sp--
+			z.bus.Write(z.sp, byte(retPC))
+
+			z.pc = uint16(z.bus.Read(z.pc+1)) |
+				uint16(z.bus.Read(z.pc+2))<<8
+
+			z.totalCycles += 17
+			return nil
+		}
 	case 0xcd: //call nn
 		retPC := z.pc + opcodeStruct.noBytes
 		z.sp--
@@ -890,34 +904,50 @@ func (z *z80) step() error {
 			z.add(byte(z.ix >> 8))
 		case 0x85: // add a,ixl XXX this is supposed to be undocumented
 			z.add(byte(z.ix))
+		case 0x86: // add a,(ixl+d)
+			z.add(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
 		case 0x8c: // adc a,ixh XXX this is supposed to be undocumented
 			z.adc(byte(z.ix >> 8))
 		case 0x8d: // add a,ixl XXX this is supposed to be undocumented
 			z.adc(byte(z.ix))
+		case 0x8e: // adc a,(ixl+d)
+			z.adc(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
 		case 0x94: // sub a,ixh XXX this is supposed to be undocumented
 			z.sub(byte(z.ix >> 8))
 		case 0x95: // sub a,ixl XXX this is supposed to be undocumented
 			z.sub(byte(z.ix))
+		case 0x96: // sub a,(ixl+d)
+			z.sub(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
 		case 0x9c: // sbc a,ixh XXX this is supposed to be undocumented
 			z.sbc(byte(z.ix >> 8))
 		case 0x9d: // sbc a,ixl XXX this is supposed to be undocumented
 			z.sbc(byte(z.ix))
+		case 0x9e: // sbc a,(ixl+d)
+			z.sbc(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
 		case 0xa4: // and a,ixh XXX this is supposed to be undocumented
 			z.and(byte(z.ix >> 8))
 		case 0xa5: // and a,ixl XXX this is supposed to be undocumented
 			z.and(byte(z.ix))
+		case 0xa6: // and (ixl+d)
+			z.and(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
 		case 0xac: // xor a,ixh XXX this is supposed to be undocumented
 			z.xor(byte(z.ix >> 8))
 		case 0xad: // xor a,ixl XXX this is supposed to be undocumented
 			z.xor(byte(z.ix))
+		case 0xae: // xor (ixl+d)
+			z.xor(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
 		case 0xb4: // or a,ixh XXX this is supposed to be undocumented
 			z.or(byte(z.ix >> 8))
 		case 0xb5: // or a,ixl XXX this is supposed to be undocumented
 			z.or(byte(z.ix))
+		case 0xb6: // or (ixl+d)
+			z.or(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
 		case 0xbc: // cp a,ixh XXX this is supposed to be undocumented
 			z.cp(byte(z.ix >> 8))
 		case 0xbd: // cp a,ixl XXX this is supposed to be undocumented
 			z.cp(byte(z.ix))
+		case 0xbe: // cp (ixl+d)
+			z.cp(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
 		case 0xe1: // pop ix
 			z.ix = uint16(z.bus.Read(z.sp)) | z.ix&0xff00
 			z.sp++
@@ -1164,34 +1194,50 @@ func (z *z80) step() error {
 			z.add(byte(z.iy >> 8))
 		case 0x85: // add a,iyl XXX this is supposed to be undocumented
 			z.add(byte(z.iy))
+		case 0x86: // add a,(iyl+d)
+			z.add(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
 		case 0x8c: // adc a,iyh XXX this is supposed to be undocumented
 			z.adc(byte(z.iy >> 8))
 		case 0x8d: // add a,iyl XXX this is supposed to be undocumented
 			z.adc(byte(z.iy))
+		case 0x8e: // adc a,(iyl+d)
+			z.adc(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
 		case 0x94: // sub a,iyh XXX this is supposed to be undocumented
 			z.sub(byte(z.iy >> 8))
 		case 0x95: // sub a,iyl XXX this is supposed to be undocumented
 			z.sub(byte(z.iy))
+		case 0x96: // sub a,(iyl+d)
+			z.sub(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
 		case 0x9c: // sbc a,iyh XXX this is supposed to be undocumented
 			z.sbc(byte(z.iy >> 8))
 		case 0x9d: // sbc a,iyl XXX this is supposed to be undocumented
 			z.sbc(byte(z.iy))
+		case 0x9e: // sbc a,(iyl+d)
+			z.sbc(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
 		case 0xa4: // and a,iyh XXX this is supposed to be undocumented
 			z.and(byte(z.iy >> 8))
 		case 0xa5: // and a,iyl XXX this is supposed to be undocumented
 			z.and(byte(z.iy))
+		case 0xa6: // and (iyl+d)
+			z.and(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
 		case 0xac: // xor a,iyh XXX this is supposed to be undocumented
 			z.xor(byte(z.iy >> 8))
 		case 0xad: // xor a,iyl XXX this is supposed to be undocumented
 			z.xor(byte(z.iy))
+		case 0xae: // xor (iyl+d)
+			z.xor(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
 		case 0xb4: // or a,iyh XXX this is supposed to be undocumented
 			z.or(byte(z.iy >> 8))
 		case 0xb5: // or a,iyl XXX this is supposed to be undocumented
 			z.or(byte(z.iy))
+		case 0xb6: // or (iyl+d)
+			z.or(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
 		case 0xbc: // cp a,iyh XXX this is supposed to be undocumented
 			z.cp(byte(z.iy >> 8))
 		case 0xbd: // cp a,iyl XXX this is supposed to be undocumented
 			z.cp(byte(z.iy))
+		case 0xbe: // cp (iyl+d)
+			z.cp(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
 		case 0xe1: // pop iy
 			z.iy = uint16(z.bus.Read(z.sp)) | z.iy&0xff00
 			z.sp++
@@ -1307,6 +1353,8 @@ func (z *z80) DisassembleComponents(address uint16) (mnemonic string, dst string
 		dst = fmt.Sprintf("($%02x)", p[start])
 	case implied:
 		dst = o.dstR[z.mode]
+	case indexed:
+		dst = fmt.Sprintf("(%v+$%02x)", o.dstR[z.mode], p[start])
 	}
 
 	switch o.src {
@@ -1328,6 +1376,8 @@ func (z *z80) DisassembleComponents(address uint16) (mnemonic string, dst string
 		src = o.srcR[z.mode]
 	case indirect:
 		src = fmt.Sprintf("($%02x)", p[start])
+	case indexed:
+		src = fmt.Sprintf("(%v+$%02x)", o.srcR[z.mode], p[start])
 	}
 
 	noBytes = int(o.noBytes)
