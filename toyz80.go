@@ -44,10 +44,32 @@ var completer = readline.NewPrefixCompleter(
 	readline.PcItem("continue"),
 	readline.PcItem("disassemble"),
 	readline.PcItem("dump"),
+	readline.PcItem("help"),
 	readline.PcItem("pause"),
 	readline.PcItem("registers"),
 	readline.PcItem("step"),
+	readline.PcItem("pc"),
 )
+
+func help() {
+	h := [][]string{
+		{"bp <set|del>", "Breakpoint, leave empty to list."},
+		{"continue", "Resume execution."},
+		{"disassemble [address[ count]]",
+			"Disassemble starting at provided address."},
+		{"dump [address[ count]]",
+			"Dump memory starting at provided address."},
+		{"help", "This help."},
+		{"mode <emacs|vi>", "Set edit mode."},
+		{"pause", "Pause execution."},
+		{"pc <address>", "Set program counter to address."},
+		{"registers", "Print registers."},
+		{"step [count]", "Execute next instruction."},
+	}
+	for i := range h {
+		fmt.Printf("%-32v%v\n", h[i][0], h[i][1])
+	}
+}
 
 func filterInput(r rune) (rune, bool) {
 	//switch r {
@@ -355,6 +377,8 @@ func _main() error {
 			} else {
 				println("current mode: emacs")
 			}
+		case line == "help":
+			help()
 		case line == "continue" || line == "run":
 			if !pause {
 				fmt.Printf("CPU is currently running\n")
@@ -502,7 +526,7 @@ func _main() error {
 			}
 			switch a[0] {
 			case "set":
-				z.SetBreakPoint(uint16(x))
+				z.SetBreakPoint(uint16(x), nil)
 			case "del":
 				z.DelBreakPoint(uint16(x))
 			default:
