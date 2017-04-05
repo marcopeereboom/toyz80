@@ -14,7 +14,8 @@ var (
 )
 
 type BreakpointError struct {
-	PC uint16
+	PC       uint16
+	Callback func() error
 }
 
 func (bp BreakpointError) Error() string {
@@ -64,8 +65,8 @@ type z80 struct {
 
 	mode CPUMode // Mode CPU is running
 
-	debug bool                // debug mode enabled
-	bp    map[uint16]struct{} // break points
+	debug bool                    // debug mode enabled
+	bp    map[uint16]func() error // break points with optional callback
 }
 
 // DumpRegisters returns a dump of all registers.
@@ -122,7 +123,7 @@ func New(mode CPUMode, bus *bus.Bus) (*z80, error) {
 	return &z80{
 		mode: mode,
 		bus:  bus,
-		bp:   make(map[uint16]struct{}),
+		bp:   make(map[uint16]func() error),
 	}, nil
 }
 
@@ -138,8 +139,8 @@ func (z *z80) GetBreakPoints() []uint16 {
 	return bps
 }
 
-func (z *z80) SetBreakPoint(address uint16) {
-	z.bp[address] = struct{}{}
+func (z *z80) SetBreakPoint(address uint16, f func() error) {
+	z.bp[address] = f
 	z.debug = true
 }
 
@@ -218,8 +219,8 @@ func (z *z80) Step() error {
 	}
 
 	// see if we hit a break point
-	if _, ok := z.bp[z.pc]; ok {
-		return BreakpointError{PC: z.pc}
+	if cb, ok := z.bp[z.pc]; ok {
+		return BreakpointError{PC: z.pc, Callback: cb}
 	}
 
 	return nil
@@ -564,7 +565,7 @@ func (z *z80) step() error {
 	case 0x89: // adc a,c
 		z.adc(byte(z.bc))
 	case 0x8a: // adc a,d
-		z.adc(byte(z.de) >> 8)
+		z.adc(byte(z.de >> 8))
 	case 0x8b: // adc a,e
 		z.adc(byte(z.de))
 	case 0x8c: // adc a,h
@@ -619,6 +620,8 @@ func (z *z80) step() error {
 		z.and(byte(z.hl >> 8))
 	case 0xa5: // and a,l
 		z.and(byte(z.hl))
+	case 0xa6: // and (hl)
+		z.and(z.bus.Read(z.hl))
 	case 0xa7: // and a,a
 		z.and(byte(z.af >> 8))
 	case 0xa8: // xor a,b
@@ -853,14 +856,68 @@ func (z *z80) step() error {
 		}
 	case 0xdb: // in a,(n)
 		z.af = uint16(z.bus.IORead(z.bus.Read(z.pc+1)))<<8 | z.af&0x00ff
+	case 0xdc: //call c,nn
+		if z.af&carry == carry {
+			retPC := z.pc + opcodeStruct.noBytes
+			z.sp--
+			z.bus.Write(z.sp, byte(retPC>>8))
+			z.sp--
+			z.bus.Write(z.sp, byte(retPC))
+
+			z.pc = uint16(z.bus.Read(z.pc+1)) |
+				uint16(z.bus.Read(z.pc+2))<<8
+
+			z.totalCycles += 17
+			return nil
+		}
 	case 0xdd: // z80 only
 		byte2 := z.bus.Read(z.pc + 1)
 		opcodeStruct = &opcodesDD[byte2]
 		switch byte2 {
+		case 0x09: // add ix,bc
+			z.ix = z.add16(z.ix, z.bc)
+		case 0x19: // add ix,de
+			z.ix = z.add16(z.ix, z.de)
 		case 0x23: // inc ix
 			z.ix += 1
+		case 0x29: // add ix,ix
+			z.ix = z.add16(z.ix, z.ix)
 		case 0x2b: // dec ix
 			z.ix -= 1
+		case 0x39: // add ix,sp
+			z.ix = z.add16(z.ix, z.sp)
+		case 0x84: // add a,ixh XXX this is supposed to be undocumented
+			z.add(byte(z.ix >> 8))
+		case 0x85: // add a,ixl XXX this is supposed to be undocumented
+			z.add(byte(z.ix))
+		case 0x8c: // adc a,ixh XXX this is supposed to be undocumented
+			z.adc(byte(z.ix >> 8))
+		case 0x8d: // add a,ixl XXX this is supposed to be undocumented
+			z.adc(byte(z.ix))
+		case 0x94: // sub a,ixh XXX this is supposed to be undocumented
+			z.sub(byte(z.ix >> 8))
+		case 0x95: // sub a,ixl XXX this is supposed to be undocumented
+			z.sub(byte(z.ix))
+		case 0x9c: // sbc a,ixh XXX this is supposed to be undocumented
+			z.sbc(byte(z.ix >> 8))
+		case 0x9d: // sbc a,ixl XXX this is supposed to be undocumented
+			z.sbc(byte(z.ix))
+		case 0xa4: // and a,ixh XXX this is supposed to be undocumented
+			z.and(byte(z.ix >> 8))
+		case 0xa5: // and a,ixl XXX this is supposed to be undocumented
+			z.and(byte(z.ix))
+		case 0xac: // xor a,ixh XXX this is supposed to be undocumented
+			z.xor(byte(z.ix >> 8))
+		case 0xad: // xor a,ixl XXX this is supposed to be undocumented
+			z.xor(byte(z.ix))
+		case 0xb4: // or a,ixh XXX this is supposed to be undocumented
+			z.or(byte(z.ix >> 8))
+		case 0xb5: // or a,ixl XXX this is supposed to be undocumented
+			z.or(byte(z.ix))
+		case 0xbc: // cp a,ixh XXX this is supposed to be undocumented
+			z.cp(byte(z.ix >> 8))
+		case 0xbd: // cp a,ixl XXX this is supposed to be undocumented
+			z.cp(byte(z.ix))
 		case 0xe1: // pop ix
 			z.ix = uint16(z.bus.Read(z.sp)) | z.ix&0xff00
 			z.sp++
@@ -877,6 +934,8 @@ func (z *z80) step() error {
 				z.pc)
 			//return ErrInvalidInstruction
 		}
+	case 0xde: // sbc a,i
+		z.sbc(z.bus.Read(z.pc + 1))
 	case 0xdf: // rst $18
 		retPC := z.pc + opcodeStruct.noBytes
 		z.sp--
@@ -944,6 +1003,8 @@ func (z *z80) step() error {
 		byte2 := z.bus.Read(z.pc + 1)
 		opcodeStruct = &opcodesED[byte2]
 		switch byte2 {
+		case 0x42: // sbc hl,bc
+			z.sbc16(z.bc)
 		case 0x44: // neg
 			// Condition Bits Affected
 			// S is set if result is negative; otherwise, it is reset.
@@ -969,12 +1030,54 @@ func (z *z80) step() error {
 			} else {
 				z.af &^= carry
 			}
+		case 0x4a: // adc hl,bc
+			z.adc16(z.bc)
+		case 0x52: // sbc hl,de
+			z.sbc16(z.de)
+		case 0x5a: // adc hl,de
+			z.adc16(z.de)
+		case 0x62: // sbc hl,hl
+			z.sbc16(z.hl)
+		case 0x6a: // adc hl,hl
+			z.adc16(z.hl)
+		case 0x72: // sbc hl,sp
+			z.sbc16(z.sp)
+		case 0x73: // ld (nn),sp
+			addr := uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+			z.bus.Write(addr, byte(z.sp))
+			z.bus.Write(addr+1, byte(z.sp>>8))
+		case 0x7a: // adc hl,sp
+			z.adc16(z.sp)
+		case 0x7b: // ld sp,(nn)
+			addr := uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+			z.sp = uint16(z.bus.Read(addr)) |
+				uint16(z.bus.Read(addr+1))<<8
+		case 0xb0: // ldir
+			t := z.bus.Read(z.hl)
+			z.bus.Write(z.de, t)
+			t += byte(z.af >> 8)
+			z.bc--
+			f := byte(z.af)&(FLAG_C|FLAG_Z|FLAG_S) |
+				ternB(z.bc != 0, FLAG_V, 0) | (t & FLAG_3) |
+				ternB((t&0x02 != 0), FLAG_5, 0)
+			z.af = z.af&0xff00 | uint16(f)
+			z.de++
+			z.hl++
+			if z.bc != 0 {
+				// don't move pc
+				z.totalCycles += 5
+				return nil
+			}
 		default:
 			return fmt.Errorf("invalid instruction: 0x%02x "+
 				"0x%02x @ 0x%04x", opc, z.bus.Read(z.pc+1),
 				z.pc)
 			//return ErrInvalidInstruction
 		}
+	case 0xee: // xor n
+		z.xor(z.bus.Read(z.pc + 1))
 	case 0xef: // rst $28
 		retPC := z.pc + opcodeStruct.noBytes
 		z.sp--
@@ -1045,10 +1148,50 @@ func (z *z80) step() error {
 		byte2 := z.bus.Read(z.pc + 1)
 		opcodeStruct = &opcodesFD[byte2]
 		switch byte2 {
+		case 0x09: // add iy,bc
+			z.iy = z.add16(z.iy, z.bc)
+		case 0x19: // add iy,de
+			z.iy = z.add16(z.iy, z.de)
 		case 0x23: // inc iy
 			z.iy += 1
+		case 0x29: // add iy,iy
+			z.iy = z.add16(z.iy, z.iy)
 		case 0x2b: // dec iy
 			z.iy -= 1
+		case 0x39: // add iy,sp
+			z.iy = z.add16(z.iy, z.sp)
+		case 0x84: // add a,iyh XXX this is supposed to be undocumented
+			z.add(byte(z.iy >> 8))
+		case 0x85: // add a,iyl XXX this is supposed to be undocumented
+			z.add(byte(z.iy))
+		case 0x8c: // adc a,iyh XXX this is supposed to be undocumented
+			z.adc(byte(z.iy >> 8))
+		case 0x8d: // add a,iyl XXX this is supposed to be undocumented
+			z.adc(byte(z.iy))
+		case 0x94: // sub a,iyh XXX this is supposed to be undocumented
+			z.sub(byte(z.iy >> 8))
+		case 0x95: // sub a,iyl XXX this is supposed to be undocumented
+			z.sub(byte(z.iy))
+		case 0x9c: // sbc a,iyh XXX this is supposed to be undocumented
+			z.sbc(byte(z.iy >> 8))
+		case 0x9d: // sbc a,iyl XXX this is supposed to be undocumented
+			z.sbc(byte(z.iy))
+		case 0xa4: // and a,iyh XXX this is supposed to be undocumented
+			z.and(byte(z.iy >> 8))
+		case 0xa5: // and a,iyl XXX this is supposed to be undocumented
+			z.and(byte(z.iy))
+		case 0xac: // xor a,iyh XXX this is supposed to be undocumented
+			z.xor(byte(z.iy >> 8))
+		case 0xad: // xor a,iyl XXX this is supposed to be undocumented
+			z.xor(byte(z.iy))
+		case 0xb4: // or a,iyh XXX this is supposed to be undocumented
+			z.or(byte(z.iy >> 8))
+		case 0xb5: // or a,iyl XXX this is supposed to be undocumented
+			z.or(byte(z.iy))
+		case 0xbc: // cp a,iyh XXX this is supposed to be undocumented
+			z.cp(byte(z.iy >> 8))
+		case 0xbd: // cp a,iyl XXX this is supposed to be undocumented
+			z.cp(byte(z.iy))
 		case 0xe1: // pop iy
 			z.iy = uint16(z.bus.Read(z.sp)) | z.iy&0xff00
 			z.sp++
@@ -1145,7 +1288,7 @@ func (z *z80) DisassembleComponents(address uint16) (mnemonic string, dst string
 	case condition:
 		dst = o.dstR[z.mode]
 	case displacement:
-		dst = fmt.Sprintf("$%04x", address+2+uint16(int8(p[1])))
+		dst = fmt.Sprintf("$%04x", address+2+uint16(int8(p[start])))
 	case registerIndirect:
 		if z.mode == Mode8080 {
 			dst = fmt.Sprintf("%v", o.dstR[z.mode])
@@ -1153,22 +1296,22 @@ func (z *z80) DisassembleComponents(address uint16) (mnemonic string, dst string
 			dst = fmt.Sprintf("(%v)", o.dstR[z.mode])
 		}
 	case extended:
-		dst = fmt.Sprintf("($%04x)", uint16(p[1])|uint16(p[2])<<8)
+		dst = fmt.Sprintf("($%04x)", uint16(p[start])|uint16(p[start+1])<<8)
 	case immediate:
-		dst = fmt.Sprintf("$%02x", p[1])
+		dst = fmt.Sprintf("$%02x", p[start])
 	case immediateExtended:
-		dst = fmt.Sprintf("$%04x", uint16(p[1])|uint16(p[2])<<8)
+		dst = fmt.Sprintf("$%04x", uint16(p[start])|uint16(p[start+1])<<8)
 	case register:
 		dst = o.dstR[z.mode]
 	case indirect:
-		dst = fmt.Sprintf("($%02x)", p[1])
+		dst = fmt.Sprintf("($%02x)", p[start])
 	case implied:
 		dst = o.dstR[z.mode]
 	}
 
 	switch o.src {
 	case displacement:
-		src = fmt.Sprintf("$%04x", address+2+uint16(int8(p[1])))
+		src = fmt.Sprintf("$%04x", address+2+uint16(int8(p[start])))
 	case registerIndirect:
 		if z.mode == Mode8080 {
 			src = fmt.Sprintf("%v", o.srcR[z.mode])
@@ -1176,15 +1319,15 @@ func (z *z80) DisassembleComponents(address uint16) (mnemonic string, dst string
 			src = fmt.Sprintf("(%v)", o.srcR[z.mode])
 		}
 	case extended:
-		src = fmt.Sprintf("($%04x)", uint16(p[1])|uint16(p[2])<<8)
+		src = fmt.Sprintf("($%04x)", uint16(p[start])|uint16(p[start+1])<<8)
 	case immediate:
-		src = fmt.Sprintf("$%02x", p[1])
+		src = fmt.Sprintf("$%02x", p[start])
 	case immediateExtended:
-		src = fmt.Sprintf("$%04x", uint16(p[1])|uint16(p[2])<<8)
+		src = fmt.Sprintf("$%04x", uint16(p[start])|uint16(p[start+1])<<8)
 	case register:
 		src = o.srcR[z.mode]
 	case indirect:
-		src = fmt.Sprintf("($%02x)", p[1])
+		src = fmt.Sprintf("($%02x)", p[start])
 	}
 
 	noBytes = int(o.noBytes)

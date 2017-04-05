@@ -53,9 +53,21 @@ var overflowSubTable = []byte{0, FLAG_V, 0, 0, 0, 0, FLAG_V, 0}
 
 var sz53Table, sz53pTable, parityTable [0x100]byte
 
+func (z *z80) adc16(val uint16) {
+	t := uint(z.hl) + uint(val) + uint(z.af&carry)
+	lookup := byte(z.hl&0x8800>>11 | val&0x8800>>10 | uint16(t&0x8800>>9))
+	z.hl = uint16(t)
+
+	f := ternB(t&0x10000 != 0, FLAG_C, 0) | overflowAddTable[lookup>>4] |
+		byte(z.hl>>8)&(FLAG_3|FLAG_5|FLAG_S) |
+		halfcarryAddTable[lookup&0x07] |
+		ternB(z.hl != 0, 0, FLAG_Z)
+	z.af = z.af&0xff00 | uint16(f)
+}
+
 func (z *z80) add16(v1, v2 uint16) uint16 {
 	t := uint(v1) + uint(v2)
-	lookup := byte(v1&0x0800>>11 | v2&0x0800>>10 | uint16(t)&0x0800>>9)
+	lookup := byte(v1&0x0800>>11 | v2&0x0800>>10 | uint16(t&0x0800>>9))
 	f := z.af&uint16(FLAG_V|FLAG_Z|FLAG_S) |
 		uint16(ternB(t&0x10000 != 0, FLAG_C, 0)|
 			(byte(t>>8)&(FLAG_3|FLAG_5))|halfcarryAddTable[lookup])
@@ -64,22 +76,20 @@ func (z *z80) add16(v1, v2 uint16) uint16 {
 }
 
 func (z *z80) add(val byte) {
-	a := byte(z.af >> 8)
-	t := uint16(a) + uint16(val)
-	lookup := a&0x88>>3 | val&0x88>>2 | byte(t&0x88>>1)
-	f := ternB(t&0x100 != 0, FLAG_C, 0) | halfcarryAddTable[lookup&0x07] |
-		overflowAddTable[lookup>>4] | sz53Table[byte(t)]
-	z.af = t<<8 | uint16(f)
+	t := uint16(z.af>>8) + uint16(val)
+	lookup := byte(z.af>>8)&0x88>>3 | val&0x88>>2 | byte(t)&0x88>>1
+	z.af = t<<8 | uint16(ternB(t&0x100 != 0, FLAG_C, 0)|
+		halfcarryAddTable[lookup&0x07]|overflowAddTable[lookup>>4]|
+		sz53Table[byte(t)])
 }
 
 func (z *z80) adc(val byte) {
 	a := byte(z.af >> 8)
-	t := uint16(a) + uint16(val) + z.af&uint16(FLAG_C)
-	lookup := byte(uint16(a)&0x88>>3 | uint16(val)&0x88>>2 |
-		uint16(t)&0x88>>1)
-	z.af = uint16(t)<<8 | uint16(ternB((t&0x100) != 0, FLAG_C, 0)|
-		halfcarryAddTable[lookup&0x07]|overflowAddTable[lookup>>4]|
-		sz53Table[a])
+	t := uint16(a) + uint16(val) + uint16(z.af&carry)
+	lookup := uint16(a)&0x88>>3 | uint16(val)&0x88>>2 | t&0x88>>1
+	f := ternB(t&0x100 != 0, FLAG_C, 0) | halfcarryAddTable[lookup&0x07] |
+		overflowAddTable[lookup>>4] | sz53Table[byte(t)]
+	z.af = t<<8 | uint16(f)
 }
 
 func (z *z80) and(val byte) {
@@ -134,11 +144,25 @@ func (z *z80) srl(val byte) byte {
 
 func (z *z80) sbc(val byte) {
 	a := byte(z.af >> 8)
-	t := uint16(a) - uint16(val) - (z.af & uint16(FLAG_C))
+	t := uint16(a) - uint16(val) - z.af&carry
 	lookup := a&0x88>>3 | val&0x88>>2 | byte(t&0x88>>1)
-	z.af = uint16(a)<<8 | uint16(ternB(t&0x100 != 0, FLAG_C, 0)|FLAG_N|
-		halfcarrySubTable[lookup&0x07]|overflowSubTable[lookup>>4]|
-		sz53Table[a])
+	f := ternB((t&0x100) != 0, FLAG_C, 0) | FLAG_N |
+		halfcarrySubTable[lookup&0x07] |
+		overflowSubTable[lookup>>4] |
+		sz53Table[byte(t)]
+	z.af = uint16(t)<<8 | uint16(f)
+}
+
+func (z *z80) sbc16(val uint16) {
+	t := uint(z.hl) - uint(val) - uint(z.af&carry)
+	lookup := byte(z.hl&0x8800>>11 | val&0x8800>>10 | uint16(t)&0x8800>>9)
+	z.hl = uint16(t)
+
+	f := ternB(t&0x10000 != 0, FLAG_C, 0) | FLAG_N |
+		overflowSubTable[lookup>>4] |
+		byte(z.hl&0xff00>>8)&(FLAG_3|FLAG_5|FLAG_S) |
+		halfcarrySubTable[lookup&0x07] | ternB(z.hl != 0, 0, FLAG_Z)
+	z.af = z.af&0xff00 | uint16(f)
 }
 
 func (z *z80) sub(val byte) {

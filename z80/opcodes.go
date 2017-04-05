@@ -35,7 +35,7 @@ type opcode struct {
 // opcodes are all possible instructions 16 bit instructions.  We just throw
 // mmemory at the problem.
 var (
-	opcodesCB = []opcode{
+	opcodesCB = [256]opcode{
 		0x27: {
 			mnemonic: []string{"sla", ""},
 			dst:      register,
@@ -51,14 +51,25 @@ var (
 			noCycles: 8,
 		},
 	}
-	opcodesED = []opcode{
-		0x44: {
-			mnemonic: []string{"neg", ""},
+	opcodesDD = [256]opcode{
+		0x09: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"ix"},
+			src:      register,
+			srcR:     []string{"bc"},
 			noBytes:  2,
-			noCycles: 8,
+			noCycles: 15,
 		},
-	}
-	opcodesDD = []opcode{
+		0x19: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"ix"},
+			src:      register,
+			srcR:     []string{"de"},
+			noBytes:  2,
+			noCycles: 15,
+		},
 		0x23: {
 			mnemonic: []string{"inc"},
 			dst:      register,
@@ -66,12 +77,174 @@ var (
 			noBytes:  2,
 			noCycles: 10,
 		},
+		0x29: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"ix"},
+			src:      register,
+			srcR:     []string{"ix"},
+			noBytes:  2,
+			noCycles: 15,
+		},
 		0x2b: {
 			mnemonic: []string{"dec"},
 			dst:      register,
 			dstR:     []string{"ix"},
 			noBytes:  2,
 			noCycles: 10,
+		},
+		0x39: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"ix"},
+			src:      register,
+			srcR:     []string{"sp"},
+			noBytes:  2,
+			noCycles: 15,
+		},
+		0x84: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x85: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x8c: {
+			mnemonic: []string{"adc"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x8d: {
+			mnemonic: []string{"adc"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x94: {
+			mnemonic: []string{"sub"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x95: {
+			mnemonic: []string{"sub"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x9c: {
+			mnemonic: []string{"sbc"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x9d: {
+			mnemonic: []string{"sbc"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xa4: {
+			mnemonic: []string{"and"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xa5: {
+			mnemonic: []string{"and"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xac: {
+			mnemonic: []string{"xor"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xad: {
+			mnemonic: []string{"xor"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xb4: {
+			mnemonic: []string{"or"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xb5: {
+			mnemonic: []string{"or"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xbc: {
+			mnemonic: []string{"cp"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xbd: {
+			mnemonic: []string{"cp"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
 		},
 		0xe1: opcode{
 			mnemonic: []string{"pop"},
@@ -88,7 +261,125 @@ var (
 			noCycles: 15,
 		},
 	}
-	opcodesFD = []opcode{
+	opcodesED = [256]opcode{
+		0x42: {
+			mnemonic: []string{"sbc"},
+			dst:      register,
+			dstR:     []string{"hl"},
+			src:      register,
+			srcR:     []string{"bc"},
+			noBytes:  2,
+			noCycles: 15,
+		},
+		0x44: {
+			mnemonic: []string{"neg", ""},
+			noBytes:  2,
+			noCycles: 8,
+		},
+		0x4a: {
+			mnemonic: []string{"adc"},
+			dst:      register,
+			dstR:     []string{"hl"},
+			src:      register,
+			srcR:     []string{"bc"},
+			noBytes:  2,
+			noCycles: 15,
+		},
+		0x52: {
+			mnemonic: []string{"sbc"},
+			dst:      register,
+			dstR:     []string{"hl"},
+			src:      register,
+			srcR:     []string{"de"},
+			noBytes:  2,
+			noCycles: 15,
+		},
+		0x5a: {
+			mnemonic: []string{"adc"},
+			dst:      register,
+			dstR:     []string{"hl"},
+			src:      register,
+			srcR:     []string{"bc"},
+			noBytes:  2,
+			noCycles: 15,
+		},
+		0x62: {
+			mnemonic: []string{"sbc"},
+			dst:      register,
+			dstR:     []string{"hl"},
+			src:      register,
+			srcR:     []string{"hl"},
+			noBytes:  2,
+			noCycles: 15,
+		},
+		0x6a: {
+			mnemonic: []string{"adc"},
+			dst:      register,
+			dstR:     []string{"hl"},
+			src:      register,
+			srcR:     []string{"hl"},
+			noBytes:  2,
+			noCycles: 15,
+		},
+		0x72: {
+			mnemonic: []string{"sbc"},
+			dst:      register,
+			dstR:     []string{"hl"},
+			src:      register,
+			srcR:     []string{"sp"},
+			noBytes:  2,
+			noCycles: 15,
+		},
+		0x73: {
+			mnemonic: []string{"ld"},
+			dst:      extended,
+			src:      register,
+			srcR:     []string{"sp"},
+			noBytes:  4,
+			noCycles: 20,
+		},
+		0x7a: {
+			mnemonic: []string{"adc"},
+			dst:      register,
+			dstR:     []string{"hl"},
+			src:      register,
+			srcR:     []string{"sp"},
+			noBytes:  2,
+			noCycles: 15,
+		},
+		0x7b: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"sp"},
+			src:      extended,
+			noBytes:  4,
+			noCycles: 20,
+		},
+		0xb0: {
+			mnemonic: []string{"ldir"},
+			noBytes:  2,
+			noCycles: 16, // bc == 0 case
+		},
+	}
+	opcodesFD = [256]opcode{
+		0x09: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"iy"},
+			src:      register,
+			srcR:     []string{"bc"},
+			noBytes:  2,
+			noCycles: 15,
+		},
+		0x19: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"iy"},
+			src:      register,
+			srcR:     []string{"de"},
+			noBytes:  2,
+			noCycles: 15,
+		},
 		0x23: {
 			mnemonic: []string{"inc"},
 			dst:      register,
@@ -96,12 +387,174 @@ var (
 			noBytes:  2,
 			noCycles: 10,
 		},
+		0x29: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"iy"},
+			src:      register,
+			srcR:     []string{"iy"},
+			noBytes:  2,
+			noCycles: 15,
+		},
 		0x2b: {
 			mnemonic: []string{"dec"},
 			dst:      register,
 			dstR:     []string{"iy"},
 			noBytes:  2,
 			noCycles: 10,
+		},
+		0x39: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"iy"},
+			src:      register,
+			srcR:     []string{"sp"},
+			noBytes:  2,
+			noCycles: 15,
+		},
+		0x84: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x85: {
+			mnemonic: []string{"add"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x8c: {
+			mnemonic: []string{"adc"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x8d: {
+			mnemonic: []string{"adc"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x94: {
+			mnemonic: []string{"sub"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x95: {
+			mnemonic: []string{"sub"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x9c: {
+			mnemonic: []string{"sbc"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0x9d: {
+			mnemonic: []string{"sbc"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xa4: {
+			mnemonic: []string{"and"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xa5: {
+			mnemonic: []string{"and"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xac: {
+			mnemonic: []string{"xor"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xad: {
+			mnemonic: []string{"xor"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xb4: {
+			mnemonic: []string{"or"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xb5: {
+			mnemonic: []string{"or"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xbc: {
+			mnemonic: []string{"cp"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
+		},
+		0xbd: {
+			mnemonic: []string{"cp"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 0x10, // XXX guess
 		},
 		0xe1: opcode{
 			mnemonic: []string{"pop"},
@@ -1328,25 +1781,25 @@ var (
 		opcode{
 			mnemonic: []string{"add", "add"},
 			dst:      register,
+			dstR:     []string{"a", "m"},
+			src:      registerIndirect,
+			srcR:     []string{"hl", ""},
+			noBytes:  1,
+			noCycles: 7,
+		},
+		// 0x85 add a,a
+		opcode{
+			mnemonic: []string{"add", "add"},
+			dst:      register,
 			dstR:     []string{"a", "a"},
 			src:      register,
 			srcR:     []string{"a"},
 			noBytes:  1,
 			noCycles: 4,
 		},
-		// 0x85 add a,a
-		opcode{
-			mnemonic: []string{"add", "add"},
-			dst:      register,
-			dstR:     []string{"a", "l"},
-			src:      register,
-			srcR:     []string{"l"},
-			noBytes:  1,
-			noCycles: 4,
-		},
 		// 0x88 adc a,b
 		opcode{
-			mnemonic: []string{"add", "adc"},
+			mnemonic: []string{"adc", "adc"},
 			dst:      register,
 			dstR:     []string{"a", "b"},
 			src:      register,
@@ -1356,7 +1809,7 @@ var (
 		},
 		// 0x89 adc a,c
 		opcode{
-			mnemonic: []string{"add", "adc"},
+			mnemonic: []string{"adc", "adc"},
 			dst:      register,
 			dstR:     []string{"a", "c"},
 			src:      register,
@@ -1366,7 +1819,7 @@ var (
 		},
 		// 0x8a adc a,d
 		opcode{
-			mnemonic: []string{"add", "adc"},
+			mnemonic: []string{"adc", "adc"},
 			dst:      register,
 			dstR:     []string{"a", "d"},
 			src:      register,
@@ -1376,7 +1829,7 @@ var (
 		},
 		// 0x8b adc a,e
 		opcode{
-			mnemonic: []string{"add", "adc"},
+			mnemonic: []string{"adc", "adc"},
 			dst:      register,
 			dstR:     []string{"a", "e"},
 			src:      register,
@@ -1386,7 +1839,7 @@ var (
 		},
 		// 0x8c adc a,h
 		opcode{
-			mnemonic: []string{"add", "adc"},
+			mnemonic: []string{"adc", "adc"},
 			dst:      register,
 			dstR:     []string{"a", "h"},
 			src:      register,
@@ -1396,7 +1849,7 @@ var (
 		},
 		// 0x8d adc a,l
 		opcode{
-			mnemonic: []string{"add", "adc"},
+			mnemonic: []string{"adc", "adc"},
 			dst:      register,
 			dstR:     []string{"a", "l"},
 			src:      register,
@@ -1406,7 +1859,7 @@ var (
 		},
 		// 0x8e adc a,(hl)
 		opcode{
-			mnemonic: []string{"add", "adc"},
+			mnemonic: []string{"adc", "adc"},
 			dst:      register,
 			dstR:     []string{"a", "m"},
 			src:      register,
@@ -1416,7 +1869,7 @@ var (
 		},
 		// 0x8f adc a,a
 		opcode{
-			mnemonic: []string{"add", "adc"},
+			mnemonic: []string{"adc", "adc"},
 			dst:      register,
 			dstR:     []string{"a", "l"},
 			src:      register,
@@ -2083,14 +2536,28 @@ var (
 			noBytes:  2,
 			noCycles: 11,
 		},
-		// 0xdc
-		opcode{},
+		// 0xdc call c
+		opcode{
+			mnemonic: []string{"call", "call"},
+			dst:      condition,
+			dstR:     []string{"c", ""},
+			src:      immediateExtended,
+			noBytes:  3,
+			noCycles: 10,
+		},
 		// 0xdd z80 multi byte
 		opcode{
 			multiByte: true,
 		},
-		// 0xde
-		opcode{},
+		// 0xde sbc a,i
+		opcode{
+			mnemonic: []string{"sbc", "sbi"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      immediate,
+			noBytes:  2,
+			noCycles: 7,
+		},
 		// 0xdf rst $18
 		opcode{
 			mnemonic: []string{"rst", "rst"},
@@ -2189,8 +2656,13 @@ var (
 		opcode{
 			multiByte: true,
 		},
-		// 0xee
-		opcode{},
+		// 0xee xor n
+		opcode{
+			mnemonic: []string{"xor", "xri"},
+			dst:      immediate,
+			noBytes:  2,
+			noCycles: 7,
+		},
 		// 0xef rst $28
 		opcode{
 			mnemonic: []string{"rst", "rst"},

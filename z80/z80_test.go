@@ -1389,7 +1389,7 @@ func TestInstructions(t *testing.T) {
 			name: "cpl",
 			mn:   "cpl",
 			data: []byte{0x2f},
-			init: func(z *z80) { z.af = 0xa5ff &^ (addsub | halfCarry); fmt.Printf("z.af %04x\n", z.af) },
+			init: func(z *z80) { z.af = 0xa5ff &^ (addsub | halfCarry) },
 			expect: func(z *z80) bool {
 				return z.af&0xffff == 0x5aff && z.pc == 0x0001
 			},
@@ -2727,6 +2727,568 @@ func TestInstructions(t *testing.T) {
 					z.af&carry == carry
 			},
 		},
+		// 0x81
+		{
+			name: "add a,c",
+			mn:   "add",
+			dst:  "a",
+			src:  "c",
+			data: []byte{0x81},
+			init: func(z *z80) { z.af = 0x10ff; z.bc = 0xa510 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x2000 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,c == $7f",
+			mn:   "add",
+			dst:  "a",
+			src:  "c",
+			data: []byte{0x81},
+			init: func(z *z80) { z.af = 0x0100; z.bc = 0xa57f },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x8000 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,c == $ff",
+			mn:   "add",
+			dst:  "a",
+			src:  "c",
+			data: []byte{0x81},
+			init: func(z *z80) { z.af = 0x0100; z.bc = 0xa5ff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		// 0x82
+		{
+			name: "add a,d",
+			mn:   "add",
+			dst:  "a",
+			src:  "d",
+			data: []byte{0x82},
+			init: func(z *z80) { z.af = 0x10ff; z.de = 0x10a5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x2000 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,d == $7f",
+			mn:   "add",
+			dst:  "a",
+			src:  "d",
+			data: []byte{0x82},
+			init: func(z *z80) { z.af = 0x0100; z.de = 0x7fa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x8000 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,d == $ff",
+			mn:   "add",
+			dst:  "a",
+			src:  "d",
+			data: []byte{0x82},
+			init: func(z *z80) { z.af = 0x0100; z.de = 0xffa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		// 0x83
+		{
+			name: "add a,e",
+			mn:   "add",
+			dst:  "a",
+			src:  "e",
+			data: []byte{0x83},
+			init: func(z *z80) { z.af = 0x10ff; z.de = 0xa510 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x2000 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,e == $7f",
+			mn:   "add",
+			dst:  "a",
+			src:  "e",
+			data: []byte{0x83},
+			init: func(z *z80) { z.af = 0x0100; z.de = 0xa57f },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x8000 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,e == $ff",
+			mn:   "add",
+			dst:  "a",
+			src:  "e",
+			data: []byte{0x83},
+			init: func(z *z80) { z.af = 0x0100; z.de = 0xa5ff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		// 0x84
+		{
+			name: "add a,h",
+			mn:   "add",
+			dst:  "a",
+			src:  "h",
+			data: []byte{0x84},
+			init: func(z *z80) { z.af = 0x10ff; z.hl = 0x10a5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x2000 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,h == $7f",
+			mn:   "add",
+			dst:  "a",
+			src:  "h",
+			data: []byte{0x84},
+			init: func(z *z80) { z.af = 0x0100; z.hl = 0x7fa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x8000 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,h == $ff",
+			mn:   "add",
+			dst:  "a",
+			src:  "h",
+			data: []byte{0x84},
+			init: func(z *z80) { z.af = 0x0100; z.hl = 0xffa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		// 0x85
+		{
+			name: "add a,l",
+			mn:   "add",
+			dst:  "a",
+			src:  "l",
+			data: []byte{0x85},
+			init: func(z *z80) { z.af = 0x10ff; z.hl = 0xa510 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x2000 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,l == $7f",
+			mn:   "add",
+			dst:  "a",
+			src:  "l",
+			data: []byte{0x85},
+			init: func(z *z80) { z.af = 0x0100; z.hl = 0xa57f },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x8000 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,l == $ff",
+			mn:   "add",
+			dst:  "a",
+			src:  "l",
+			data: []byte{0x85},
+			init: func(z *z80) { z.af = 0x0100; z.hl = 0xa5ff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		// 0x86
+		{
+			name: "add a,(hl)",
+			mn:   "add",
+			dst:  "a",
+			src:  "(hl)",
+			data: []byte{0x86},
+			init: func(z *z80) {
+				z.af = 0x10ff
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0x10)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x2000 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,i == $7f",
+			mn:   "add",
+			dst:  "a",
+			src:  "(hl)",
+			data: []byte{0x86},
+			init: func(z *z80) {
+				z.af = 0x01ff
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0x7f)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x8000 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,(hl) == $ff",
+			mn:   "add",
+			dst:  "a",
+			src:  "(hl)",
+			data: []byte{0x86},
+			init: func(z *z80) {
+				z.af = 0x01ff
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0xff)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		// 0x87
+		{
+			name: "add a,a",
+			mn:   "add",
+			dst:  "a",
+			src:  "a",
+			data: []byte{0x87},
+			init: func(z *z80) { z.af = 0x10ff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x2000 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,a == $7f",
+			mn:   "add",
+			dst:  "a",
+			src:  "a",
+			data: []byte{0x87},
+			init: func(z *z80) { z.af = 0x7f00 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0xfe00 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add a,a == $40",
+			mn:   "add",
+			dst:  "a",
+			src:  "a",
+			data: []byte{0x87},
+			init: func(z *z80) { z.af = 0x4000; z.hl = 0xffa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x8000 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		// 0x88
+		{
+			name: "adc a,b",
+			mn:   "adc",
+			dst:  "a",
+			src:  "b",
+			data: []byte{0x88},
+			init: func(z *z80) { z.af = 0x10ff; z.bc = 0x10a5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x2100 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "adc a,b == $7f",
+			mn:   "adc",
+			dst:  "a",
+			src:  "b",
+			data: []byte{0x88},
+			init: func(z *z80) { z.af = 0x0100; z.bc = 0x7fa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x8000 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "adc a,b == $ff",
+			mn:   "adc",
+			dst:  "a",
+			src:  "b",
+			data: []byte{0x88},
+			init: func(z *z80) { z.af = 0x0100; z.bc = 0xffa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		// 0x89
+		{
+			name: "adc a,c",
+			mn:   "adc",
+			dst:  "a",
+			src:  "c",
+			data: []byte{0x89},
+			init: func(z *z80) { z.af = 0x10ff; z.bc = 0xa510 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x2100 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "adc a,c == $7f",
+			mn:   "adc",
+			dst:  "a",
+			src:  "c",
+			data: []byte{0x89},
+			init: func(z *z80) { z.af = 0x0100; z.bc = 0xa57f },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x8000 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "adc a,c == $ff",
+			mn:   "adc",
+			dst:  "a",
+			src:  "c",
+			data: []byte{0x89},
+			init: func(z *z80) { z.af = 0x0100; z.bc = 0xa5ff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		// 0x8a
+		{
+			name: "adc a,d",
+			mn:   "adc",
+			dst:  "a",
+			src:  "d",
+			data: []byte{0x8a},
+			init: func(z *z80) { z.af = 0x10ff; z.de = 0x10a5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x2100 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "adc a,d == $7f",
+			mn:   "adc",
+			dst:  "a",
+			src:  "d",
+			data: []byte{0x8a},
+			init: func(z *z80) { z.af = 0x0100; z.de = 0x7fa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x8000 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "adc a,d == $ff",
+			mn:   "adc",
+			dst:  "a",
+			src:  "d",
+			data: []byte{0x8a},
+			init: func(z *z80) { z.af = 0x0100; z.de = 0xffa5 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0001 &&
+					z.af&0xff00 == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
 		// 0xa7
 		{
 			name: "and a",
@@ -3806,7 +4368,7 @@ func TestInstructions(t *testing.T) {
 			expect: func(z *z80) bool {
 				return z.pc == 0x0002 &&
 					z.af&0xff00 == 0x8000 &&
-					z.af&sign == 0 &&
+					z.af&sign == sign &&
 					z.af&zero == 0 &&
 					z.af&halfCarry == halfCarry &&
 					z.af&parity == parity &&
@@ -4042,6 +4604,33 @@ func TestInstructions(t *testing.T) {
 			},
 			dontSkipPC: true,
 		},
+		// 0xdc
+		{
+			name: "call c,nn (C set)",
+			mn:   "call",
+			dst:  "c",
+			src:  "$1122",
+			data: []byte{0xdc, 0x22, 0x11},
+			init: func(z *z80) { z.af = carry; z.sp = 0x5566 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x1122 && z.sp == 0x5564 &&
+					z.bus.Read(0x5564) == 0x03 &&
+					z.bus.Read(0x5565) == 0x00
+			},
+			dontSkipPC: true,
+		},
+		{
+			name: "call c,nn (C clear)",
+			mn:   "call",
+			dst:  "c",
+			src:  "$1122",
+			data: []byte{0xdc, 0x22, 0x11},
+			init: func(z *z80) { z.sp = 0x5566 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0003 && z.sp == 0x5566
+			},
+			dontSkipPC: true,
+		},
 		// 0xdb
 		{
 			name: "in a,(n)",
@@ -4052,6 +4641,65 @@ func TestInstructions(t *testing.T) {
 			init: func(z *z80) { z.af = 0xff00 },
 			expect: func(z *z80) bool {
 				return z.pc == 0x0002
+			},
+		},
+		// 0xdd 0x09 add ix,bc
+		{
+			name: "add ix,bc",
+			mn:   "add",
+			dst:  "ix",
+			src:  "bc",
+			data: []byte{0xdd, 0x09},
+			init: func(z *z80) { z.ix = 0x3344; z.bc = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.ix == 0x4466 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add ix,bc (-1+1)",
+			mn:   "add",
+			dst:  "ix",
+			src:  "bc",
+			data: []byte{0xdd, 0x09},
+			init: func(z *z80) { z.ix = 0xffff; z.bc = 0x0001 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.ix == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		{
+			name: "add ix,bc (-1+2)",
+			mn:   "add",
+			dst:  "ix",
+			src:  "bc",
+			data: []byte{0xdd, 0x09},
+			init: func(z *z80) {
+				z.ix = 0xffff
+				z.bc = 0x0002
+				z.af |= carry
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.ix == 0x0001 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
 			},
 		},
 		// 0xdd 0x23
@@ -4151,6 +4799,61 @@ func TestInstructions(t *testing.T) {
 				return z.pc == 0x0002 && z.sp == 0xaa53 &&
 					z.bus.Read(0xaa53) == 0x22 &&
 					z.bus.Read(0xaa54) == 0x11
+			},
+		},
+		// 0xde
+		{
+			name: "sbc a,i",
+			mn:   "sbc",
+			dst:  "a",
+			src:  "$10",
+			data: []byte{0xde, 0x10},
+			init: func(z *z80) { z.af = 0x10ff },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&0xff00 == 0xff00 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == addsub &&
+					z.af&carry == carry
+			},
+		},
+		{
+			name: "sbc a,i == $7f",
+			mn:   "sbc",
+			dst:  "a",
+			src:  "$7f",
+			data: []byte{0xde, 0x7f},
+			init: func(z *z80) { z.af = 0x0100 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&0xff00 == 0x8200 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == addsub &&
+					z.af&carry == carry
+			},
+		},
+		{
+			name: "sbc a,i == $ff",
+			mn:   "sbc",
+			dst:  "a",
+			src:  "$ff",
+			data: []byte{0xde, 0xff},
+			init: func(z *z80) { z.af = 0xff00 | carry },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&0xff00 == 0xff00 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == addsub &&
+					z.af&carry == carry
 			},
 		},
 		// 0xdf
@@ -4367,6 +5070,63 @@ func TestInstructions(t *testing.T) {
 					z.pc == 0x0001
 			},
 		},
+		// 0xed 0x42 sbc hl,bc
+		{
+			name: "sbc hl,bc",
+			mn:   "sbc",
+			dst:  "hl",
+			src:  "bc",
+			data: []byte{0xed, 0x42},
+			init: func(z *z80) { z.hl = 0x3344; z.bc = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.hl == 0x2222 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&addsub == addsub
+			},
+		},
+		{
+			name: "sbc hl,bc (1-1)",
+			mn:   "sbc",
+			dst:  "hl",
+			src:  "bc",
+			data: []byte{0xed, 0x42},
+			init: func(z *z80) { z.hl = 0x0001; z.bc = 0x0001 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.hl == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&addsub == addsub
+			},
+		},
+		{
+			name: "sbc hl,bc (1-1-1)",
+			mn:   "sbc",
+			dst:  "hl",
+			src:  "bc",
+			data: []byte{0xed, 0x42},
+			init: func(z *z80) {
+				z.hl = 0x0001
+				z.bc = 0x0001
+				z.af |= carry
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.hl == 0xffff &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == addsub &&
+					z.af&carry == carry
+			},
+		},
 		// 0xed 0x44 neg
 		// XXX add more test cases for all the flags
 		{
@@ -4406,6 +5166,106 @@ func TestInstructions(t *testing.T) {
 				return 0x0100 == z.af&0xff00 &&
 					z.pc == 0x0002 && z.af&zero == 0 &&
 					z.af&sign == 0
+			},
+		},
+		// 0xed 0x4a adc hl,bc
+		{
+			name: "adc hl,bc",
+			mn:   "adc",
+			dst:  "hl",
+			src:  "bc",
+			data: []byte{0xed, 0x4a},
+			init: func(z *z80) { z.hl = 0x3344; z.bc = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.hl == 0x4466 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "adc hl,bc (-1+1)",
+			mn:   "adc",
+			dst:  "hl",
+			src:  "bc",
+			data: []byte{0xed, 0x4a},
+			init: func(z *z80) { z.hl = 0xffff; z.bc = 0x0001 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.hl == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		{
+			name: "adc hl,bc (-1+1+1)",
+			mn:   "adc",
+			dst:  "hl",
+			src:  "bc",
+			data: []byte{0xed, 0x4a},
+			init: func(z *z80) {
+				z.hl = 0xffff
+				z.bc = 0x0001
+				z.af |= carry
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.hl == 0x0001 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		// 0xed 0x73 ld (nn),sp
+		{
+			name: "ld (nn),sp",
+			mn:   "ld",
+			dst:  "($1000)",
+			src:  "sp",
+			data: []byte{0xed, 0x73, 0x00, 0x10},
+			init: func(z *z80) { z.sp = 0x4644 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0004 &&
+					z.bus.Read(0x1000) == 0x44 &&
+					z.bus.Read(0x1001) == 0x46 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&addsub == 0
+			},
+		},
+		// 0xed 0x7b ld sp,(nn)
+		{
+			name: "ld sp,(nn)",
+			mn:   "ld",
+			dst:  "sp",
+			src:  "($2130)",
+			data: []byte{0xed, 0x7b, 0x30, 0x21},
+			init: func(z *z80) {
+				z.bus.Write(0x2130, 0x65)
+				z.bus.Write(0x2131, 0x78)
+				z.sp = 0x4644
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0004 &&
+					z.sp == 0x7865 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&addsub == 0
 			},
 		},
 		// 0xef
@@ -4639,6 +5499,65 @@ func TestInstructions(t *testing.T) {
 			expect: func(z *z80) bool {
 				return z.pc == 0x0001 && z.iff1 == 1 &&
 					z.iff2 == 1
+			},
+		},
+		// 0xfd 0x09 add iy,bc
+		{
+			name: "add iy,bc",
+			mn:   "add",
+			dst:  "iy",
+			src:  "bc",
+			data: []byte{0xfd, 0x09},
+			init: func(z *z80) { z.iy = 0x3344; z.bc = 0x1122 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.iy == 0x4466 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "add iy,bc (-1+1)",
+			mn:   "add",
+			dst:  "iy",
+			src:  "bc",
+			data: []byte{0xfd, 0x09},
+			init: func(z *z80) { z.iy = 0xffff; z.bc = 0x0001 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.iy == 0x0000 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
+			},
+		},
+		{
+			name: "add iy,bc (-1+2)",
+			mn:   "add",
+			dst:  "iy",
+			src:  "bc",
+			data: []byte{0xfd, 0x09},
+			init: func(z *z80) {
+				z.iy = 0xffff
+				z.bc = 0x0002
+				z.af |= carry
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.iy == 0x0001 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0 &&
+					z.af&carry == carry
 			},
 		},
 		// 0xfd 0x23
