@@ -23,7 +23,8 @@ package z80
 const (
 	FLAG_C = byte(carry)
 	FLAG_N = byte(addsub)
-	FLAG_V = byte(parity)
+	FLAG_V = byte(parity) // V == P
+	FLAG_P = byte(parity) // V == P
 	FLAG_3 = byte(unused)
 	FLAG_H = byte(halfCarry)
 	FLAG_5 = byte(unused2)
@@ -97,6 +98,17 @@ func (z *z80) and(val byte) {
 	z.af = uint16(a)<<8 | halfCarry | uint16(sz53pTable[a])
 }
 
+func (z *z80) bit(bit, val byte) {
+	f := byte(z.af)&FLAG_C | FLAG_H | val&(FLAG_3|FLAG_5)
+	if val&(0x01<<bit) == 0 {
+		f |= FLAG_P | FLAG_Z
+	}
+	if bit == 7 && (val&0x80) != 0 {
+		f |= FLAG_S
+	}
+	z.af = z.af&0xff00 | uint16(f)
+}
+
 func (z *z80) cp(val byte) {
 	a := byte(z.af >> 8)
 	aTmp := uint16(a) - uint16(val)
@@ -108,17 +120,74 @@ func (z *z80) cp(val byte) {
 	z.af = z.af&0xff00 | uint16(f)
 }
 
+func (z *z80) cpd() {
+	a := byte(z.af >> 8)
+	val := z.bus.Read(z.hl)
+	t := a - val
+	lookup := a&0x08>>3 | val&0x08>>2 | t&0x08>>1
+	z.hl--
+	z.bc--
+	f := byte(z.af)&FLAG_C | ternB(z.bc != 0, FLAG_V|FLAG_N, FLAG_N) |
+		halfcarrySubTable[lookup] | ternB(t != 0, 0, FLAG_Z) | t&FLAG_S
+	if (f & FLAG_H) != 0 {
+		t--
+	}
+	f |= t&FLAG_3 | ternB(t&0x02 != 0, FLAG_5, 0)
+	z.af = z.af&0xff00 | uint16(f)
+}
+
+func (z *z80) cpi() {
+	a := byte(z.af >> 8)
+	val := z.bus.Read(z.hl)
+	t := a - val
+	lookup := a&0x08>>3 | val&0x08>>2 | t&0x08>>1
+	z.hl++
+	z.bc--
+	f := byte(z.af)&FLAG_C | ternB(z.bc != 0, FLAG_V|FLAG_N, FLAG_N) |
+		halfcarrySubTable[lookup] | ternB(t != 0, 0, FLAG_Z) |
+		(t & FLAG_S)
+	if f&FLAG_H != 0 {
+		t--
+	}
+	f |= (t & FLAG_3) | ternB(t&0x02 != 0, FLAG_5, 0)
+	z.af = z.af&0xff00 | uint16(f)
+}
+
+func (z *z80) daa() {
+	a := byte(z.af >> 8)
+	f := byte(z.af)
+	add := byte(0)
+	carryIn := f & FLAG_C
+	if f&FLAG_H != 0 || a&0x0f > 9 {
+		add = 6
+	}
+	if carryIn != 0 || a > 0x99 {
+		add |= 0x60
+	}
+	if a > 0x99 {
+		carryIn = FLAG_C
+	}
+	if f&FLAG_N != 0 {
+		z.sub(add)
+	} else {
+		z.add(add)
+	}
+	temp := byte(f&^(FLAG_C|FLAG_P)) | carryIn | parityTable[a]
+	z.af = z.af&0xff00 | uint16(temp)
+}
+
 func (z *z80) dec(val byte) byte {
-	f := ternB((val&0x0f) != 0, 0, FLAG_H) | FLAG_N
+	f := byte(z.af)&FLAG_C | ternB(val&0x0f != 0, 0, FLAG_H) | FLAG_N
 	val--
-	z.af = z.af&0xff00 | uint16(f) | uint16(ternB(val == 0x7f, FLAG_V, 0)|sz53Table[val])
+	f |= ternB(val == 0x7f, FLAG_V, 0) | sz53Table[val]
+	z.af = z.af&0xff00 | uint16(f)
 	return val
 }
 
 func (z *z80) inc(val byte) byte {
 	val++
-	f := (byte(z.af) & FLAG_C) | ternB(val == 0x80, FLAG_V, 0) |
-		ternB((val&0x0f) != 0, 0, FLAG_H) | sz53Table[(val)]
+	f := byte(z.af)&FLAG_C | ternB(val == 0x80, FLAG_V, 0) |
+		ternB(val&0x0f != 0, 0, FLAG_H) | sz53Table[val]
 	z.af = z.af&0xff00 | uint16(f)
 	return val
 }

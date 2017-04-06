@@ -329,6 +329,8 @@ func (z *z80) step() error {
 		z.hl = uint16(z.dec(byte(z.hl>>8)))<<8 | z.hl&0x00ff
 	case 0x26: // ld h,n
 		z.hl = uint16(z.bus.Read(z.pc+1))<<8 | z.hl&0x00ff
+	case 0x27: // daa
+		z.daa()
 	case 0x28: // jr z,d
 		if z.af&zero == zero {
 			z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
@@ -764,6 +766,134 @@ func (z *z80) step() error {
 			z.af = uint16(z.sla(byte(z.af>>8)))<<8 | z.af&0x00ff
 		case 0x3f: // srl a
 			z.af = uint16(z.srl(byte(z.af>>8)))<<8 | z.af&0x00ff
+		case 0x40: // bit 0,b
+			z.bit(0, byte(z.bc>>8))
+		case 0x41: // bit 0,c
+			z.bit(0, byte(z.bc))
+		case 0x42: // bit 0,d
+			z.bit(0, byte(z.de>>8))
+		case 0x43: // bit 0,e
+			z.bit(0, byte(z.de))
+		case 0x44: // bit 0,h
+			z.bit(0, byte(z.hl>>8))
+		case 0x45: // bit 0,l
+			z.bit(0, byte(z.hl))
+		case 0x46: // bit 0,(hl)
+			z.bit(0, z.bus.Read(z.hl))
+		case 0x47: // bit 0,a
+			z.bit(0, byte(z.af>>8))
+		case 0x48: // bit 1,b
+			z.bit(1, byte(z.bc>>8))
+		case 0x49: // bit 1,c
+			z.bit(1, byte(z.bc))
+		case 0x4a: // bit 1,d
+			z.bit(1, byte(z.de>>8))
+		case 0x4b: // bit 1,e
+			z.bit(1, byte(z.de))
+		case 0x4c: // bit 1,h
+			z.bit(1, byte(z.hl>>8))
+		case 0x4d: // bit 1,l
+			z.bit(1, byte(z.hl))
+		case 0x4e: // bit 1,(hl)
+			z.bit(1, z.bus.Read(z.hl))
+		case 0x4f: // bit 1,a
+			z.bit(1, byte(z.af>>8))
+		case 0x50: // bit 2,b
+			z.bit(2, byte(z.bc>>8))
+		case 0x51: // bit 2,c
+			z.bit(2, byte(z.bc))
+		case 0x52: // bit 2,d
+			z.bit(2, byte(z.de>>8))
+		case 0x53: // bit 2,e
+			z.bit(2, byte(z.de))
+		case 0x54: // bit 2,h
+			z.bit(2, byte(z.hl>>8))
+		case 0x55: // bit 2,l
+			z.bit(2, byte(z.hl))
+		case 0x56: // bit 2,(hl)
+			z.bit(2, z.bus.Read(z.hl))
+		case 0x57: // bit 2,a
+			z.bit(2, byte(z.af>>8))
+		case 0x58: // bit 3,b
+			z.bit(3, byte(z.bc>>8))
+		case 0x59: // bit 3,c
+			z.bit(3, byte(z.bc))
+		case 0x5a: // bit 3,d
+			z.bit(3, byte(z.de>>8))
+		case 0x5b: // bit 3,e
+			z.bit(3, byte(z.de))
+		case 0x5c: // bit 3,h
+			z.bit(3, byte(z.hl>>8))
+		case 0x5d: // bit 3,l
+			z.bit(3, byte(z.hl))
+		case 0x5e: // bit 3,(hl)
+			z.bit(3, z.bus.Read(z.hl))
+		case 0x5f: // bit 3,a
+			z.bit(3, byte(z.af>>8))
+		case 0x60: // bit 4,b
+			z.bit(4, byte(z.bc>>8))
+		case 0x61: // bit 4,c
+			z.bit(4, byte(z.bc))
+		case 0x62: // bit 4,d
+			z.bit(4, byte(z.de>>8))
+		case 0x63: // bit 4,e
+			z.bit(4, byte(z.de))
+		case 0x64: // bit 4,h
+			z.bit(4, byte(z.hl>>8))
+		case 0x65: // bit 4,l
+			z.bit(4, byte(z.hl))
+		case 0x66: // bit 4,(hl)
+			z.bit(4, z.bus.Read(z.hl))
+		case 0x67: // bit 4,a
+			z.bit(4, byte(z.af>>8))
+		case 0x68: // bit 5,b
+			z.bit(5, byte(z.bc>>8))
+		case 0x69: // bit 5,c
+			z.bit(5, byte(z.bc))
+		case 0x6a: // bit 5,d
+			z.bit(5, byte(z.de>>8))
+		case 0x6b: // bit 5,e
+			z.bit(5, byte(z.de))
+		case 0x6c: // bit 5,h
+			z.bit(5, byte(z.hl>>8))
+		case 0x6d: // bit 5,l
+			z.bit(5, byte(z.hl))
+		case 0x6e: // bit 5,(hl)
+			z.bit(5, z.bus.Read(z.hl))
+		case 0x6f: // bit 5,a
+			z.bit(5, byte(z.af>>8))
+		case 0x70: // bit 6,b
+			z.bit(6, byte(z.bc>>8))
+		case 0x71: // bit 6,c
+			z.bit(6, byte(z.bc))
+		case 0x72: // bit 6,d
+			z.bit(6, byte(z.de>>8))
+		case 0x73: // bit 6,e
+			z.bit(6, byte(z.de))
+		case 0x74: // bit 6,h
+			z.bit(6, byte(z.hl>>8))
+		case 0x75: // bit 6,l
+			z.bit(6, byte(z.hl))
+		case 0x76: // bit 6,(hl)
+			z.bit(6, z.bus.Read(z.hl))
+		case 0x77: // bit 6,a
+			z.bit(6, byte(z.af>>8))
+		case 0x78: // bit 7,b
+			z.bit(7, byte(z.bc>>8))
+		case 0x79: // bit 7,c
+			z.bit(7, byte(z.bc))
+		case 0x7a: // bit 7,d
+			z.bit(7, byte(z.de>>8))
+		case 0x7b: // bit 7,e
+			z.bit(7, byte(z.de))
+		case 0x7c: // bit 7,h
+			z.bit(7, byte(z.hl>>8))
+		case 0x7d: // bit 7,l
+			z.bit(7, byte(z.hl))
+		case 0x7e: // bit 7,(hl)
+			z.bit(7, z.bus.Read(z.hl))
+		case 0x7f: // bit 7,a
+			z.bit(7, byte(z.af>>8))
 		default:
 			return fmt.Errorf("invalid instruction: 0x%02x "+
 				"0x%02x @ 0x%04x", opc, z.bus.Read(z.pc+1),
@@ -898,6 +1028,12 @@ func (z *z80) step() error {
 			z.ix = z.add16(z.ix, z.ix)
 		case 0x2b: // dec ix
 			z.ix -= 1
+		case 0x34: // inc (ix+d)
+			x := z.inc(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
+			z.bus.Write(z.ix+uint16(z.bus.Read(z.pc+2)), x)
+		case 0x35: // dec (ix+d)
+			x := z.dec(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
+			z.bus.Write(z.ix+uint16(z.bus.Read(z.pc+2)), x)
 		case 0x39: // add ix,sp
 			z.ix = z.add16(z.ix, z.sp)
 		case 0x84: // add a,ixh XXX this is supposed to be undocumented
@@ -948,6 +1084,11 @@ func (z *z80) step() error {
 			z.cp(byte(z.ix))
 		case 0xbe: // cp (ixl+d)
 			z.cp(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
+		case 0xcb: // bit b,(ix+d)
+			bit := z.bus.Read(z.pc+3) & 0x38 >> 3
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			val := z.bus.Read(z.ix + displacement)
+			z.bit(bit, val)
 		case 0xe1: // pop ix
 			z.ix = uint16(z.bus.Read(z.sp)) | z.ix&0xff00
 			z.sp++
@@ -1084,6 +1225,10 @@ func (z *z80) step() error {
 				uint16(z.bus.Read(z.pc+3))<<8
 			z.sp = uint16(z.bus.Read(addr)) |
 				uint16(z.bus.Read(addr+1))<<8
+		case 0xa1: // cpi
+			z.cpi()
+		case 0xa9: // cpd
+			z.cpd()
 		case 0xb0: // ldir
 			t := z.bus.Read(z.hl)
 			z.bus.Write(z.de, t)
@@ -1097,7 +1242,49 @@ func (z *z80) step() error {
 			z.hl++
 			if z.bc != 0 {
 				// don't move pc
-				z.totalCycles += 5
+				z.totalCycles += 21
+				return nil
+			}
+		case 0xb1: // cpir
+			a := byte(z.af >> 8)
+			val := z.bus.Read(z.hl)
+			t := a - val
+			lookup := a&0x08>>3 | val&0x08>>2 | t&0x08>>1
+			z.bc--
+			z.hl++
+			f := byte(z.af)&FLAG_C |
+				ternB(z.bc != 0, FLAG_V|FLAG_N, FLAG_N) |
+				halfcarrySubTable[lookup] |
+				ternB(t != 0, 0, FLAG_Z) | t&FLAG_S
+			if f&FLAG_H != 0 {
+				t--
+			}
+			f |= t&FLAG_3 | ternB(t&0x02 != 0, FLAG_5, 0)
+			z.af = z.af&0xff00 | uint16(f)
+			if f&(FLAG_V|FLAG_Z) == FLAG_V {
+				// don't move pc
+				z.totalCycles += 21
+				return nil
+			}
+		case 0xb9: // cpdr
+			a := byte(z.af >> 8)
+			val := z.bus.Read(z.hl)
+			t := a - val
+			lookup := a&0x08>>3 | val&0x08>>2 | t&0x08>>1
+			z.bc--
+			z.hl--
+			f := byte(z.af)&FLAG_C |
+				ternB(z.bc != 0, FLAG_V|FLAG_N, FLAG_N) |
+				halfcarrySubTable[lookup] |
+				ternB(t != 0, 0, FLAG_Z) | t&FLAG_S
+			if f&FLAG_H != 0 {
+				t--
+			}
+			f |= t&FLAG_3 | ternB(t&0x02 != 0, FLAG_5, 0)
+			z.af = z.af&0xff00 | uint16(f)
+			if f&(FLAG_V|FLAG_Z) == FLAG_V {
+				// don't move pc
+				z.totalCycles += 21
 				return nil
 			}
 		default:
@@ -1188,6 +1375,12 @@ func (z *z80) step() error {
 			z.iy = z.add16(z.iy, z.iy)
 		case 0x2b: // dec iy
 			z.iy -= 1
+		case 0x34: // inc (iy+d)
+			x := z.inc(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
+			z.bus.Write(z.iy+uint16(z.bus.Read(z.pc+2)), x)
+		case 0x35: // dec (iy+d)
+			x := z.dec(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
+			z.bus.Write(z.iy+uint16(z.bus.Read(z.pc+2)), x)
 		case 0x39: // add iy,sp
 			z.iy = z.add16(z.iy, z.sp)
 		case 0x84: // add a,iyh XXX this is supposed to be undocumented
@@ -1238,6 +1431,11 @@ func (z *z80) step() error {
 			z.cp(byte(z.iy))
 		case 0xbe: // cp (iyl+d)
 			z.cp(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
+		case 0xcb: // bit b,(iy+d)
+			bit := z.bus.Read(z.pc+3) & 0x38 >> 3
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			val := z.bus.Read(z.iy + displacement)
+			z.bit(bit, val)
 		case 0xe1: // pop iy
 			z.iy = uint16(z.bus.Read(z.sp)) | z.iy&0xff00
 			z.sp++
@@ -1355,6 +1553,9 @@ func (z *z80) DisassembleComponents(address uint16) (mnemonic string, dst string
 		dst = o.dstR[z.mode]
 	case indexed:
 		dst = fmt.Sprintf("(%v+$%02x)", o.dstR[z.mode], p[start])
+	case bitIndexed:
+		// we assume this is the 4th byte
+		dst = fmt.Sprintf("%v", p[start+1]&0x38>>3)
 	}
 
 	switch o.src {

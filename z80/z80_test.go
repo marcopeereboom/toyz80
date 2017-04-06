@@ -4324,6 +4324,84 @@ func TestInstructions(t *testing.T) {
 					z.af&carry == carry
 			},
 		},
+		// 0xcb 0x40
+		{
+			name: "bit 0,b (bit 0 SET)",
+			mn:   "bit",
+			dst:  "0",
+			src:  "b",
+			data: []byte{0xcb, 0x40},
+			init: func(z *z80) { z.bc = 0xff00 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.bc&0xff00 == 0xff00 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "bit 0,b (bit 0 CLEAR)",
+			mn:   "bit",
+			dst:  "0",
+			src:  "b",
+			data: []byte{0xcb, 0x40},
+			init: func(z *z80) { z.bc = 0xfe00 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.bc&0xff00 == 0xfe00 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		// 0xcb 0x7e
+		{
+			name: "bit 7,b (bit 7 SET)",
+			mn:   "bit",
+			dst:  "7",
+			src:  "(hl)",
+			data: []byte{0xcb, 0x7e},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0xff)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "bit 7,b (bit 7 CLEAR)",
+			mn:   "bit",
+			dst:  "7",
+			src:  "(hl)",
+			data: []byte{0xcb, 0x7e},
+			init: func(z *z80) {
+				z.hl = 0x1122
+				z.bus.Write(0x1122, 0x7f)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&halfCarry == halfCarry &&
+					z.af&parity == parity &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
 		// 0xcd
 		{
 			name: "call nn",
@@ -4769,6 +4847,50 @@ func TestInstructions(t *testing.T) {
 				return z.pc == 0x0002 && z.ix == 0x7fff
 			},
 		},
+		// 0xdd 0x34
+		{
+			name: "inc (ix+d)",
+			mn:   "inc",
+			dst:  "(ix+$11)",
+			src:  "",
+			data: []byte{0xdd, 0x34, 0x11},
+			init: func(z *z80) {
+				z.ix = 0x1122
+				z.bus.Write(0x1122+0x11, 0x7f)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0003 && z.ix == 0x1122 &&
+					z.bus.Read(0x1122+0x11) == 0x80 &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&parity == parity &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		// 0xdd 0x35
+		{
+			name: "dec (ix+d)",
+			mn:   "dec",
+			dst:  "(ix+$11)",
+			src:  "",
+			data: []byte{0xdd, 0x35, 0x11},
+			init: func(z *z80) {
+				z.ix = 0x1122
+				z.bus.Write(0x1122+0x11, 0xff)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0003 && z.ix == 0x1122 &&
+					z.bus.Read(0x1122+0x11) == 0xfe &&
+					z.af&sign == sign &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&addsub == addsub &&
+					z.af&carry == 0
+			},
+		},
 		// 0xdd 0x86
 		{
 			name: "add a,(ix+d)",
@@ -4789,6 +4911,49 @@ func TestInstructions(t *testing.T) {
 					z.af&zero == 0 &&
 					z.af&parity == 0 &&
 					z.af&halfCarry == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		// 0xdd 0xcb
+		{
+			name: "bit 0,(ix+d) set",
+			mn:   "bit",
+			dst:  "0",
+			src:  "(ix+$11)",
+			data: []byte{0xdd, 0xcb, 0x11, 0x46},
+			init: func(z *z80) {
+				z.ix = 0x3344
+				z.bus.Write(0x3344+0x11, 0x01)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0004 &&
+					z.ix == 0x3344 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "bit 0,(ix+d) clear",
+			mn:   "bit",
+			dst:  "0",
+			src:  "(ix+$11)",
+			data: []byte{0xdd, 0xcb, 0x11, 0x46},
+			init: func(z *z80) {
+				z.ix = 0x3344
+				z.bus.Write(0x3344+0x11, 0xf0)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0004 &&
+					z.ix == 0x3344 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&parity == parity &&
+					z.af&halfCarry == halfCarry &&
 					z.af&addsub == 0 &&
 					z.af&carry == 0
 			},
@@ -5714,6 +5879,49 @@ func TestInstructions(t *testing.T) {
 			expect: func(z *z80) bool {
 				return z.pc == 0x0002 && z.sp == 0xaa57 &&
 					z.iy == 0xeeff
+			},
+		},
+		// 0xfd 0xcb
+		{
+			name: "bit 0,(iy+d) set",
+			mn:   "bit",
+			dst:  "0",
+			src:  "(iy+$11)",
+			data: []byte{0xfd, 0xcb, 0x11, 0x46},
+			init: func(z *z80) {
+				z.iy = 0x3344
+				z.bus.Write(0x3344+0x11, 0x01)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0004 &&
+					z.iy == 0x3344 &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
+		{
+			name: "bit 0,(iy+d) clear",
+			mn:   "bit",
+			dst:  "0",
+			src:  "(iy+$11)",
+			data: []byte{0xfd, 0xcb, 0x11, 0x46},
+			init: func(z *z80) {
+				z.iy = 0x3344
+				z.bus.Write(0x3344+0x11, 0xf0)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0004 &&
+					z.iy == 0x3344 &&
+					z.af&sign == 0 &&
+					z.af&zero == zero &&
+					z.af&parity == parity &&
+					z.af&halfCarry == halfCarry &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
 			},
 		},
 		// 0xfd 0xe5
