@@ -1389,9 +1389,9 @@ func TestInstructions(t *testing.T) {
 			name: "cpl",
 			mn:   "cpl",
 			data: []byte{0x2f},
-			init: func(z *z80) { z.af = 0xa5ff &^ (addsub | halfCarry) },
+			init: func(z *z80) { z.af = 0xa500 },
 			expect: func(z *z80) bool {
-				return z.af&0xffff == 0x5aff && z.pc == 0x0001
+				return z.af&0xffff == 0x5a1a && z.pc == 0x0001
 			},
 		},
 		// 0x31

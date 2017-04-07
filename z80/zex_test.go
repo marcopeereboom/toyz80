@@ -72,7 +72,8 @@ func (z *z80) printChar() error {
 }
 
 func TestZexDoc(t *testing.T) {
-	z, _, err := newZ80("zex/zexdoc.com")
+	z, _, err := newZ80("zex/zexdoc.cim")
+	//z, _, err := newZ80("zex/zexdoc.com")
 	if err != nil {
 		t.Fatal(err)
 	}

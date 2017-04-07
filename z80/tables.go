@@ -157,7 +157,7 @@ func (z *z80) daa() {
 	a := byte(z.af >> 8)
 	f := byte(z.af)
 	add := byte(0)
-	carryIn := f & FLAG_C
+	carryIn := byte(z.af) & FLAG_C
 	if f&FLAG_H != 0 || a&0x0f > 9 {
 		add = 6
 	}
@@ -172,8 +172,9 @@ func (z *z80) daa() {
 	} else {
 		z.add(add)
 	}
-	temp := byte(f&^(FLAG_C|FLAG_P)) | carryIn | parityTable[a]
-	z.af = z.af&0xff00 | uint16(temp)
+	newF := byte(z.af) & ^(FLAG_C|FLAG_P) | carryIn |
+		parityTable[byte(z.af>>8)]
+	z.af = z.af&0xff00 | uint16(newF)
 }
 
 func (z *z80) dec(val byte) byte {
@@ -223,13 +224,17 @@ func (z *z80) ldi() {
 	z.af = z.af&0xff00 | uint16(f)
 }
 
-func (z *z80) rrd() {
-	a := byte(z.af >> 8)
-	t := z.bus.Read(z.hl)
-	z.bus.Write(z.hl, a<<4|t>>4)
-	a = a&0xf0 | t&0x0f
-	f := byte(z.af)&FLAG_C | sz53pTable[a]
-	z.af = uint16(a)<<8 | uint16(f)
+func (z *z80) rl(val byte) byte {
+	t := val
+	val = val<<1 | byte(z.af)&FLAG_C
+	z.af = z.af&0xff00 | uint16(t>>7|sz53pTable[val])
+	return val
+}
+
+func (z *z80) rlc(val byte) byte {
+	val = val<<1 | val>>7
+	z.af = z.af&0xff00 | uint16(val&FLAG_C|sz53pTable[val])
+	return val
 }
 
 func (z *z80) rld() {
@@ -241,17 +246,59 @@ func (z *z80) rld() {
 	z.af = uint16(a)<<8 | uint16(f)
 }
 
+func (z *z80) rr(val byte) byte {
+	t := val
+	val = val>>1 | byte(z.af)<<7
+	z.af = z.af&0xff00 | uint16(t&FLAG_C|sz53pTable[val])
+	return val
+}
+
+func (z *z80) rrc(val byte) byte {
+	f := val & FLAG_C
+	val = val>>1 | val<<7
+	f |= sz53pTable[val]
+	z.af = z.af&0xff00 | uint16(f)
+	return val
+}
+
+func (z *z80) rrd() {
+	a := byte(z.af >> 8)
+	t := z.bus.Read(z.hl)
+	z.bus.Write(z.hl, a<<4|t>>4)
+	a = a&0xf0 | t&0x0f
+	f := byte(z.af)&FLAG_C | sz53pTable[a]
+	z.af = uint16(a)<<8 | uint16(f)
+}
+
 func (z *z80) sla(val byte) byte {
 	f := val >> 7
 	val <<= 1
-	z.af = z.af&0xff00 | uint16(f) | uint16(sz53pTable[val])
+	f |= sz53pTable[val]
+	z.af = z.af&0xff00 | uint16(f)
+	return val
+}
+
+func (z *z80) sll(val byte) byte {
+	f := val >> 7
+	val = val<<1 | 0x01
+	f |= sz53pTable[val]
+	z.af = z.af&0xff00 | uint16(f)
+	return val
+}
+
+func (z *z80) sra(val byte) byte {
+	f := val & FLAG_C
+	val = val&0x80 | val>>1
+	f |= sz53pTable[val]
+	z.af = z.af&0xff00 | uint16(f)
 	return val
 }
 
 func (z *z80) srl(val byte) byte {
 	f := val & FLAG_C
 	val >>= 1
-	z.af = uint16(f) | uint16(sz53pTable[val])
+	f |= sz53pTable[val]
+	z.af = z.af&0xff00 | uint16(f)
 	return val
 }
 
