@@ -197,6 +197,50 @@ func (z *z80) or(val byte) {
 	z.af = uint16(a)<<8 | uint16(sz53pTable[a])
 }
 
+func (z *z80) ldd() {
+	t := z.bus.Read(z.hl)
+	z.bc--
+	z.bus.Write(z.de, t)
+	z.de--
+	z.hl--
+	t += byte(z.af >> 8)
+	f := byte(z.af)&(FLAG_C|FLAG_Z|FLAG_S) |
+		ternB(z.bc != 0, FLAG_V, 0) | t&FLAG_3 |
+		ternB(t&0x02 != 0, FLAG_5, 0)
+	z.af = z.af&0xff00 | uint16(f)
+}
+
+func (z *z80) ldi() {
+	t := z.bus.Read(z.hl)
+	z.bc--
+	z.bus.Write(z.de, t)
+	z.de++
+	z.hl++
+	t += byte(z.af >> 8)
+	f := byte(z.af)&(FLAG_C|FLAG_Z|FLAG_S) |
+		ternB(z.bc != 0, FLAG_V, 0) | t&FLAG_3 |
+		ternB(t&0x02 != 0, FLAG_5, 0)
+	z.af = z.af&0xff00 | uint16(f)
+}
+
+func (z *z80) rrd() {
+	a := byte(z.af >> 8)
+	t := z.bus.Read(z.hl)
+	z.bus.Write(z.hl, a<<4|t>>4)
+	a = a&0xf0 | t&0x0f
+	f := byte(z.af)&FLAG_C | sz53pTable[a]
+	z.af = uint16(a)<<8 | uint16(f)
+}
+
+func (z *z80) rld() {
+	a := byte(z.af >> 8)
+	t := z.bus.Read(z.hl)
+	z.bus.Write(z.hl, t<<4|a&0x0f)
+	a = a&0xf0 | t>>4
+	f := byte(z.af)&FLAG_C | sz53pTable[a]
+	z.af = uint16(a)<<8 | uint16(f)
+}
+
 func (z *z80) sla(val byte) byte {
 	f := val >> 7
 	val <<= 1

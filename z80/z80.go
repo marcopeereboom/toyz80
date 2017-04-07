@@ -201,7 +201,10 @@ func (z *z80) evalH(src, increment byte) {
 func (z *z80) genericPostInstruction(o *opcode) {
 	// panic for now
 	if o.noBytes == 0 || o.noCycles == 0 {
-		panic(fmt.Sprintf("opcode missing or invalid: pc %04x", z.pc))
+		panic(fmt.Sprintf("opcode missing or invalid: pc %04x "+
+			"%02x %02x %02x %02x", z.pc,
+			z.bus.Read(z.pc+0), z.bus.Read(z.pc+1),
+			z.bus.Read(z.pc+2), z.bus.Read(z.pc+3)))
 	}
 
 	z.totalCycles += o.noCycles
@@ -257,9 +260,11 @@ func (z *z80) step() error {
 	case 0x06: // ld b,n
 		z.bc = uint16(z.bus.Read(z.pc+1))<<8 | z.bc&0x00ff
 	case 0x07: // rlca
-		a := z.af >> 8 << 1
-		f := z.af&(sign|zero|parity|unused|unused2) | a>>8
-		z.af = (a>>8|a)<<8 | f
+		a := byte(z.af >> 8)
+		a = a<<1 | a>>7
+		f := byte(z.af)&(FLAG_P|FLAG_Z|FLAG_S) |
+			a&(FLAG_C|FLAG_3|FLAG_5)
+		z.af = uint16(a)<<8 | uint16(f)
 	case 0x08: // ex af,af'
 		t := z.af
 		z.af = z.af_
@@ -277,11 +282,11 @@ func (z *z80) step() error {
 	case 0x0e: // ld c,n
 		z.bc = uint16(z.bus.Read(z.pc+1)) | z.bc&0xff00
 	case 0x0f: // rrca
-		a := z.af & 0xff00 >> 1
-		a = a<<8 | a
-		f := z.af&(sign|zero|parity|unused|unused2) |
-			uint16(ternB(a&0x80 == 0x80, byte(carry), 0))
-		z.af = a&0xff00 | uint16(f)
+		a := byte(z.af >> 8)
+		f := byte(z.af)&(FLAG_P|FLAG_Z|FLAG_S) | a&FLAG_C
+		a = a>>1 | a<<7
+		f |= a & (FLAG_3 | FLAG_5)
+		z.af = uint16(a)<<8 | uint16(f)
 	case 0x11: // ld de,nn
 		z.de = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
 	case 0x12: // ld (de),a
@@ -294,6 +299,12 @@ func (z *z80) step() error {
 		z.de = uint16(z.dec(byte(z.de>>8)))<<8 | z.de&0x00ff
 	case 0x16: // ld d,n
 		z.de = uint16(z.bus.Read(z.pc+1))<<8 | z.de&0x00ff
+	case 0x17: // rla
+		t := byte(z.af >> 8)
+		a := t<<1 | byte(z.af)&FLAG_C
+		f := byte(z.af)&(FLAG_P|FLAG_Z|FLAG_S) | a&(FLAG_3|FLAG_5) |
+			t>>7
+		z.af = uint16(a)<<8 | uint16(f)
 	case 0x18: // jr d
 		z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
 		z.totalCycles += opcodeStruct.noCycles
@@ -310,11 +321,12 @@ func (z *z80) step() error {
 		z.de = uint16(z.dec(byte(z.de))) | z.de&0xff00
 	case 0x1e: // ld e,n
 		z.de = uint16(z.bus.Read(z.pc+1)) | z.de&0xff00
-	case 0x1f: // rar
-		a := z.af&0xff00>>1 | z.af<<15
-		f := z.af&(sign|zero|parity|unused|unused2) |
-			uint16(ternB(a&0x80 == 0x80, byte(carry), 0))
-		z.af = a | f
+	case 0x1f: // rra
+		t := byte(z.af >> 8)
+		a := t>>1 | byte(z.af)<<7
+		f := byte(z.af)&(FLAG_P|FLAG_Z|FLAG_S) |
+			a&(FLAG_3|FLAG_5) | t&FLAG_C
+		z.af = uint16(a)<<8 | uint16(f)
 	case 0x21: // ld hl,nn
 		z.hl = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
 	case 0x22: // ld (nn),hl
@@ -1022,18 +1034,75 @@ func (z *z80) step() error {
 			z.ix = z.add16(z.ix, z.bc)
 		case 0x19: // add ix,de
 			z.ix = z.add16(z.ix, z.de)
+		case 0x21: // ld ix,nn
+			z.ix = uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+		case 0x22: // ld (nn),ix
+			addr := uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+			z.bus.Write(addr, byte(z.ix))
+			z.bus.Write(addr+1, byte(z.ix>>8))
 		case 0x23: // inc ix
 			z.ix += 1
+		case 0x24: // inc ixh XXX this is supposed to be undocumented
+			z.ix = uint16(z.inc(byte(z.ix>>8)))<<8 | z.ix&0x00ff
+		case 0x25: // dec ixh XXX this is supposed to be undocumented
+			z.ix = uint16(z.dec(byte(z.ix>>8)))<<8 | z.ix&0x00ff
+		case 0x26: // ld ixh,n XXX this is supposed to be undocumented
+			z.ix = z.ix&0x00ff | uint16(z.bus.Read(z.pc+2))<<8
 		case 0x29: // add ix,ix
 			z.ix = z.add16(z.ix, z.ix)
+		case 0x2a: // ld ix,(nn)
+			addr := uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+			z.ix = uint16(z.bus.Read(addr)) |
+				uint16(z.bus.Read(addr+1))<<8
 		case 0x2b: // dec ix
 			z.ix -= 1
+		case 0x2c: // inc ixl XXX this is supposed to be undocumented
+			z.ix = uint16(z.inc(byte(z.ix))) | z.ix&0xff00
+		case 0x2d: // dec ixl XXX this is supposed to be undocumented
+			z.ix = uint16(z.dec(byte(z.ix))) | z.ix&0xff00
+		case 0x2e: // ld ixl,n XXX this is supposed to be undocumented
+			z.ix = z.ix&0xff00 | uint16(z.bus.Read(z.pc+2))
 		case 0x34: // inc (ix+d)
 			x := z.inc(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
 			z.bus.Write(z.ix+uint16(z.bus.Read(z.pc+2)), x)
 		case 0x35: // dec (ix+d)
 			x := z.dec(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
 			z.bus.Write(z.ix+uint16(z.bus.Read(z.pc+2)), x)
+		case 0x36: // ld (ix+d),n
+			val := z.bus.Read(z.pc + 3)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.bus.Write(z.ix+displacement, val)
+		case 0x46: // ld b,(ix+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.bc = z.bc&0x00ff |
+				uint16(z.bus.Read(z.ix+displacement))<<8
+		case 0x4e: // ld c,(ix+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.bc = z.bc&0xff00 |
+				uint16(z.bus.Read(z.ix+displacement))
+		case 0x56: // ld d,(ix+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.de = z.de&0x00ff |
+				uint16(z.bus.Read(z.ix+displacement))<<8
+		case 0x5e: // ld e,(ix+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.de = z.de&0xff00 |
+				uint16(z.bus.Read(z.ix+displacement))
+		case 0x66: // ld h,(ix+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.hl = z.hl&0x00ff |
+				uint16(z.bus.Read(z.ix+displacement))<<8
+		case 0x6e: // ld l,(ix+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.hl = z.hl&0xff00 |
+				uint16(z.bus.Read(z.ix+displacement))
+		case 0x7e: // ld a,(ix+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.af = z.af&0x00ff |
+				uint16(z.bus.Read(z.ix+displacement))<<8
 		case 0x39: // add ix,sp
 			z.ix = z.add16(z.ix, z.sp)
 		case 0x84: // add a,ixh XXX this is supposed to be undocumented
@@ -1176,41 +1245,49 @@ func (z *z80) step() error {
 		switch byte2 {
 		case 0x42: // sbc hl,bc
 			z.sbc16(z.bc)
+		case 0x43: // ld (nn),bc
+			addr := uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+			z.bus.Write(addr, byte(z.bc))
+			z.bus.Write(addr+1, byte(z.bc>>8))
 		case 0x44: // neg
-			// Condition Bits Affected
-			// S is set if result is negative; otherwise, it is reset.
-			// Z is set if result is 0; otherwise, it is reset.
-			// H is set if borrow from bit 4; otherwise, it is reset.
-			// P/V is set if Accumulator was 80h before operation; otherwise, it is reset.
-			// N is set.
-			// C is set if Accumulator was not 00h before operation; otherwise, it is reset.
-			oldA := byte(z.af & 0xff00 >> 8)
-			newA := 0 - oldA
-			z.af = uint16(newA) << 8
-			z.evalS(newA)
-			z.evalZ(newA)
-			// XXX figure out how to handle the H flag
-			if oldA == 0x80 {
-				z.af |= parity
-			} else {
-				z.af &^= parity
-			}
-			z.af |= addsub
-			if oldA != 0x00 {
-				z.af |= carry
-			} else {
-				z.af &^= carry
-			}
+			t := byte(z.af >> 8)
+			z.af = z.af & 0x00ff
+			z.sub(t)
 		case 0x4a: // adc hl,bc
 			z.adc16(z.bc)
+		case 0x4b: // ld bc,(nn)
+			addr := uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+			z.bc = uint16(z.bus.Read(addr)) |
+				uint16(z.bus.Read(addr+1))<<8
 		case 0x52: // sbc hl,de
 			z.sbc16(z.de)
+		case 0x53: // ld (nn),de
+			addr := uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+			z.bus.Write(addr, byte(z.de))
+			z.bus.Write(addr+1, byte(z.de>>8))
 		case 0x5a: // adc hl,de
 			z.adc16(z.de)
+		case 0x5b: // ld de,(nn)
+			addr := uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+			z.de = uint16(z.bus.Read(addr)) |
+				uint16(z.bus.Read(addr+1))<<8
 		case 0x62: // sbc hl,hl
 			z.sbc16(z.hl)
+		case 0x67: // rrd
+			z.rrd()
 		case 0x6a: // adc hl,hl
 			z.adc16(z.hl)
+		case 0x6b: // ld (nn),hl
+			addr := uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+			z.bus.Write(addr, byte(z.hl))
+			z.bus.Write(addr+1, byte(z.hl>>8))
+		case 0x6f: // rld
+			z.rld()
 		case 0x72: // sbc hl,sp
 			z.sbc16(z.sp)
 		case 0x73: // ld (nn),sp
@@ -1225,8 +1302,12 @@ func (z *z80) step() error {
 				uint16(z.bus.Read(z.pc+3))<<8
 			z.sp = uint16(z.bus.Read(addr)) |
 				uint16(z.bus.Read(addr+1))<<8
+		case 0xa0: // ldi
+			z.ldi()
 		case 0xa1: // cpi
 			z.cpi()
+		case 0xa8: // ldd
+			z.ldd()
 		case 0xa9: // cpd
 			z.cpd()
 		case 0xb0: // ldir
@@ -1262,6 +1343,22 @@ func (z *z80) step() error {
 			f |= t&FLAG_3 | ternB(t&0x02 != 0, FLAG_5, 0)
 			z.af = z.af&0xff00 | uint16(f)
 			if f&(FLAG_V|FLAG_Z) == FLAG_V {
+				// don't move pc
+				z.totalCycles += 21
+				return nil
+			}
+		case 0xb8: // lddr
+			t := z.bus.Read(z.hl)
+			z.bus.Write(z.de, t)
+			z.bc--
+			t += byte(z.af >> 8)
+			f := byte(z.af)&(FLAG_C|FLAG_Z|FLAG_S) |
+				ternB(z.bc != 0, FLAG_V, 0) | t&FLAG_3 |
+				ternB(t&0x02 != 0, FLAG_5, 0)
+			z.af = z.af&0xff00 | uint16(f)
+			z.hl--
+			z.de--
+			if z.bc != 0 {
 				// don't move pc
 				z.totalCycles += 21
 				return nil
@@ -1369,20 +1466,77 @@ func (z *z80) step() error {
 			z.iy = z.add16(z.iy, z.bc)
 		case 0x19: // add iy,de
 			z.iy = z.add16(z.iy, z.de)
+		case 0x21: // ld iy,nn
+			z.iy = uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+		case 0x22: // ld (nn),iy
+			addr := uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+			z.bus.Write(addr, byte(z.iy))
+			z.bus.Write(addr+1, byte(z.iy>>8))
 		case 0x23: // inc iy
 			z.iy += 1
+		case 0x24: // inc iyh XXX this is supposed to be undocumented
+			z.iy = uint16(z.inc(byte(z.iy>>8)))<<8 | z.iy&0x00ff
+		case 0x25: // dec iyh XXX this is supposed to be undocumented
+			z.iy = uint16(z.dec(byte(z.iy>>8)))<<8 | z.iy&0x00ff
+		case 0x26: // ld iyh,n XXX this is supposed to be undocumented
+			z.iy = z.iy&0x00ff | uint16(z.bus.Read(z.pc+2))<<8
 		case 0x29: // add iy,iy
 			z.iy = z.add16(z.iy, z.iy)
+		case 0x2a: // ld iy,(nn)
+			addr := uint16(z.bus.Read(z.pc+2)) |
+				uint16(z.bus.Read(z.pc+3))<<8
+			z.iy = uint16(z.bus.Read(addr)) |
+				uint16(z.bus.Read(addr+1))<<8
 		case 0x2b: // dec iy
 			z.iy -= 1
+		case 0x2c: // inc iyl XXX this is supposed to be undocumented
+			z.iy = uint16(z.inc(byte(z.iy))) | z.iy&0xff00
+		case 0x2d: // dec iyl XXX this is supposed to be undocumented
+			z.iy = uint16(z.dec(byte(z.iy))) | z.iy&0xff00
+		case 0x2e: // ld iyl,n XXX this is supposed to be undocumented
+			z.iy = z.iy&0xff00 | uint16(z.bus.Read(z.pc+2))
 		case 0x34: // inc (iy+d)
 			x := z.inc(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
 			z.bus.Write(z.iy+uint16(z.bus.Read(z.pc+2)), x)
 		case 0x35: // dec (iy+d)
 			x := z.dec(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
 			z.bus.Write(z.iy+uint16(z.bus.Read(z.pc+2)), x)
+		case 0x36: // ld (iy+d),n
+			val := z.bus.Read(z.pc + 3)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.bus.Write(z.iy+displacement, val)
 		case 0x39: // add iy,sp
 			z.iy = z.add16(z.iy, z.sp)
+		case 0x46: // ld b,(iy+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.bc = z.bc&0x00ff |
+				uint16(z.bus.Read(z.iy+displacement))<<8
+		case 0x4e: // ld c,(iy+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.bc = z.bc&0xff00 |
+				uint16(z.bus.Read(z.iy+displacement))
+		case 0x56: // ld d,(iy+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.de = z.de&0x00ff |
+				uint16(z.bus.Read(z.iy+displacement))<<8
+		case 0x5e: // ld e,(iy+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.de = z.de&0xff00 |
+				uint16(z.bus.Read(z.iy+displacement))
+		case 0x66: // ld h,(iy+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.hl = z.hl&0x00ff |
+				uint16(z.bus.Read(z.iy+displacement))<<8
+		case 0x6e: // ld l,(iy+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.hl = z.hl&0xff00 |
+				uint16(z.bus.Read(z.iy+displacement))
+		case 0x7e: // ld a,(iy+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			z.af = z.af&0x00ff |
+				uint16(z.bus.Read(z.iy+displacement))<<8
 		case 0x84: // add a,iyh XXX this is supposed to be undocumented
 			z.add(byte(z.iy >> 8))
 		case 0x85: // add a,iyl XXX this is supposed to be undocumented
