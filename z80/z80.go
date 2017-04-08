@@ -173,29 +173,81 @@ func (z *z80) Reset(cold bool) {
 	//The register R = 00h
 }
 
-func (z *z80) evalZ(src byte) {
-	if src == 0x00 {
-		z.af |= zero
-	} else {
-		z.af &^= zero
-	}
+func (z *z80) res(bit, val byte) byte {
+	mask := byte(^(1 << bit))
+	return val & mask
 }
 
-func (z *z80) evalS(src byte) {
-	if src&0x80 == 0x80 {
-		z.af |= sign
-	} else {
-		z.af &^= sign
-	}
+func (z *z80) set(bit, val byte) byte {
+	x := byte(1 << bit)
+	return val | x
 }
 
-func (z *z80) evalH(src, increment byte) {
-	h := (src&0x0f + increment&0x0f) & 0x10
-	if h != 0 {
-		z.af |= halfCarry
-	} else {
-		z.af &^= halfCarry
+func (z *z80) ddcb() error {
+	// zilog really is crazy, 4th byte + bit 7&6
+	// descriminates the instruction type
+	byte4 := z.bus.Read(z.pc + 3)
+	switch byte4 & 0xc0 {
+	case 0x00: // rot/shft
+		// operation lives in bit 5, 4 & 3
+		// Index	0	1	2	3	4	5	6	7
+		// Value	RLC	RRC	RL	RR	SLA	SRA	SLL	SRL
+		// Index	0	1	2	3	4	5	6	7
+		// Value	B	C	D	E	H	L	(HL)	A
+		op := byte4 & 38 >> 3
+		switch op {
+		case 0x00:
+			reg := byte4 & 7
+			switch reg {
+			case 0x00:
+				z.bc = z.bc&0x00ff | uint16(z.rlc(byte(z.bc>>8)))<<8
+			case 0x01:
+				z.bc = z.bc&0xff00 | uint16(z.rlc(byte(z.bc)))
+			case 0x02:
+				z.de = z.de&0x00ff | uint16(z.rlc(byte(z.de>>8)))<<8
+			case 0x03:
+				z.de = z.de&0xff00 | uint16(z.rlc(byte(z.de)))
+			case 0x04:
+				z.hl = z.de&0x00ff | uint16(z.rlc(byte(z.de>>8)))<<8
+			case 0x05:
+				z.hl = z.de&0xff00 | uint16(z.rlc(byte(z.de)))
+			case 0x06:
+				t := z.rlc(z.bus.Read(z.hl))
+				z.bus.Write(z.hl, t)
+			case 0x07:
+				z.af = z.af&0x00ff | uint16(z.rlc(byte(z.af>>8)))<<8
+			default:
+				panic(fmt.Sprintf("---d %02x %02x %02x %02x %02x",
+					byte4&0xc0,
+					z.bus.Read(z.pc+0),
+					z.bus.Read(z.pc+1),
+					z.bus.Read(z.pc+2),
+					z.bus.Read(z.pc+3)))
+			}
+		default:
+			// XXX should become a nop
+			panic(fmt.Sprintf("d %02x %02x %02x %02x %02x",
+				byte4&0xc0,
+				z.bus.Read(z.pc+0),
+				z.bus.Read(z.pc+1),
+				z.bus.Read(z.pc+2),
+				z.bus.Read(z.pc+3)))
+		}
+	case 0x40: // bit b,(ix+d)
+		bit := byte4 & 0x38 >> 3
+		displacement := uint16(z.bus.Read(z.pc + 2))
+		val := z.bus.Read(z.ix + displacement)
+		z.bit(bit, val)
+	default:
+		panic(fmt.Sprintf("+++d %02x %02x %02x %02x %02x",
+			byte4&0xc0,
+			z.bus.Read(z.pc+0),
+			z.bus.Read(z.pc+1),
+			z.bus.Read(z.pc+2),
+			z.bus.Read(z.pc+3)))
 	}
+
+	return nil
 }
 
 func (z *z80) genericPostInstruction(o *opcode) {
@@ -1018,6 +1070,278 @@ func (z *z80) step() error {
 			z.bit(7, z.bus.Read(z.hl))
 		case 0x7f: // bit 7,a
 			z.bit(7, byte(z.af>>8))
+		case 0x80: // res 0,b
+			z.bc = z.bc&0x00ff | uint16(z.res(0, byte(z.bc>>8)))<<8
+		case 0x81: // res 0,c
+			z.bc = z.bc&0xff00 | uint16(z.res(0, byte(z.bc)))
+		case 0x82: // res 0,d
+			z.de = z.de&0x00ff | uint16(z.res(0, byte(z.de>>8)))<<8
+		case 0x83: // res 0,e
+			z.de = z.de&0xff00 | uint16(z.res(0, byte(z.de)))
+		case 0x84: // res 0,h
+			z.hl = z.hl&0x00ff | uint16(z.res(0, byte(z.hl>>8)))<<8
+		case 0x85: // res 0,l
+			z.hl = z.hl&0xff00 | uint16(z.res(0, byte(z.hl)))
+		case 0x86: // res 0,(hl)
+			val := z.res(0, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0x87: // res 0,a
+			z.af = z.af&0x00ff | uint16(z.res(0, byte(z.af>>8)))<<8
+		case 0x88: // res 1,b
+			z.bc = z.bc&0x00ff | uint16(z.res(1, byte(z.bc>>8)))<<8
+		case 0x89: // res 1,c
+			z.bc = z.bc&0xff00 | uint16(z.res(1, byte(z.bc)))
+		case 0x8a: // res 1,d
+			z.de = z.de&0x00ff | uint16(z.res(1, byte(z.de>>8)))<<8
+		case 0x8b: // res 1,e
+			z.de = z.de&0xff00 | uint16(z.res(1, byte(z.de)))
+		case 0x8c: // res 1,h
+			z.hl = z.hl&0x00ff | uint16(z.res(1, byte(z.hl>>8)))<<8
+		case 0x8d: // res 1,l
+			z.hl = z.hl&0xff00 | uint16(z.res(1, byte(z.hl)))
+		case 0x8e: // res 1,(hl)
+			val := z.res(1, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0x8f: // res 1,a
+			z.af = z.af&0x00ff | uint16(z.res(1, byte(z.af>>8)))<<8
+		case 0x90: // res 2,b
+			z.bc = z.bc&0x00ff | uint16(z.res(2, byte(z.bc>>8)))<<8
+		case 0x91: // res 2,c
+			z.bc = z.bc&0xff00 | uint16(z.res(2, byte(z.bc)))
+		case 0x92: // res 2,d
+			z.de = z.de&0x00ff | uint16(z.res(2, byte(z.de>>8)))<<8
+		case 0x93: // res 2,e
+			z.de = z.de&0xff00 | uint16(z.res(2, byte(z.de)))
+		case 0x94: // res 2,h
+			z.hl = z.hl&0x00ff | uint16(z.res(2, byte(z.hl>>8)))<<8
+		case 0x95: // res 2,l
+			z.hl = z.hl&0xff00 | uint16(z.res(2, byte(z.hl)))
+		case 0x96: // res 2,(hl)
+			val := z.res(2, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0x97: // res 2,a
+			z.af = z.af&0x00ff | uint16(z.res(2, byte(z.af>>8)))<<8
+		case 0x98: // res 3,b
+			z.bc = z.bc&0x00ff | uint16(z.res(3, byte(z.bc>>8)))<<8
+		case 0x99: // res 3,c
+			z.bc = z.bc&0xff00 | uint16(z.res(3, byte(z.bc)))
+		case 0x9a: // res 3,d
+			z.de = z.de&0x00ff | uint16(z.res(3, byte(z.de>>8)))<<8
+		case 0x9b: // res 3,e
+			z.de = z.de&0xff00 | uint16(z.res(3, byte(z.de)))
+		case 0x9c: // res 3,h
+			z.hl = z.hl&0x00ff | uint16(z.res(3, byte(z.hl>>8)))<<8
+		case 0x9d: // res 3,l
+			z.hl = z.hl&0xff00 | uint16(z.res(3, byte(z.hl)))
+		case 0x9e: // res 3,(hl)
+			val := z.res(3, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0x9f: // res 3,a
+			z.af = z.af&0x00ff | uint16(z.res(3, byte(z.af>>8)))<<8
+		case 0xa0: // res 4,b
+			z.bc = z.bc&0x00ff | uint16(z.res(4, byte(z.bc>>8)))<<8
+		case 0xa1: // res 4,c
+			z.bc = z.bc&0xff00 | uint16(z.res(4, byte(z.bc)))
+		case 0xa2: // res 4,d
+			z.de = z.de&0x00ff | uint16(z.res(4, byte(z.de>>8)))<<8
+		case 0xa3: // res 4,e
+			z.de = z.de&0xff00 | uint16(z.res(4, byte(z.de)))
+		case 0xa4: // res 4,h
+			z.hl = z.hl&0x00ff | uint16(z.res(4, byte(z.hl>>8)))<<8
+		case 0xa5: // res 4,l
+			z.hl = z.hl&0xff00 | uint16(z.res(4, byte(z.hl)))
+		case 0xa6: // res 4,(hl)
+			val := z.res(4, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0xa7: // res 4,a
+			z.af = z.af&0x00ff | uint16(z.res(4, byte(z.af>>8)))<<8
+		case 0xa8: // res 5,b
+			z.bc = z.bc&0x00ff | uint16(z.res(5, byte(z.bc>>8)))<<8
+		case 0xa9: // res 5,c
+			z.bc = z.bc&0xff00 | uint16(z.res(5, byte(z.bc)))
+		case 0xaa: // res 5,d
+			z.de = z.de&0x00ff | uint16(z.res(5, byte(z.de>>8)))<<8
+		case 0xab: // res 5,e
+			z.de = z.de&0xff00 | uint16(z.res(5, byte(z.de)))
+		case 0xac: // res 5,h
+			z.hl = z.hl&0x00ff | uint16(z.res(5, byte(z.hl>>8)))<<8
+		case 0xad: // res 5,l
+			z.hl = z.hl&0xff00 | uint16(z.res(5, byte(z.hl)))
+		case 0xae: // res 5,(hl)
+			val := z.res(5, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0xaf: // res 5,a
+			z.af = z.af&0x00ff | uint16(z.res(5, byte(z.af>>8)))<<8
+		case 0xb0: // res 6,b
+			z.bc = z.bc&0x00ff | uint16(z.res(6, byte(z.bc>>8)))<<8
+		case 0xb1: // res 6,c
+			z.bc = z.bc&0xff00 | uint16(z.res(6, byte(z.bc)))
+		case 0xb2: // res 6,d
+			z.de = z.de&0x00ff | uint16(z.res(6, byte(z.de>>8)))<<8
+		case 0xb3: // res 6,e
+			z.de = z.de&0xff00 | uint16(z.res(6, byte(z.de)))
+		case 0xb4: // res 6,h
+			z.hl = z.hl&0x00ff | uint16(z.res(6, byte(z.hl>>8)))<<8
+		case 0xb5: // res 6,l
+			z.hl = z.hl&0xff00 | uint16(z.res(6, byte(z.hl)))
+		case 0xb6: // res 6,(hl)
+			val := z.res(6, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0xb7: // res 6,a
+			z.af = z.af&0x00ff | uint16(z.res(6, byte(z.af>>8)))<<8
+		case 0xb8: // res 7,b
+			z.bc = z.bc&0x00ff | uint16(z.res(7, byte(z.bc>>8)))<<8
+		case 0xb9: // res 7,c
+			z.bc = z.bc&0xff00 | uint16(z.res(7, byte(z.bc)))
+		case 0xba: // res 7,d
+			z.de = z.de&0x00ff | uint16(z.res(7, byte(z.de>>8)))<<8
+		case 0xbb: // res 7,e
+			z.de = z.de&0xff00 | uint16(z.res(7, byte(z.de)))
+		case 0xbc: // res 7,h
+			z.hl = z.hl&0x00ff | uint16(z.res(7, byte(z.hl>>8)))<<8
+		case 0xbd: // res 7,l
+			z.hl = z.hl&0xff00 | uint16(z.res(7, byte(z.hl)))
+		case 0xbe: // res 7,(hl)
+			val := z.res(7, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0xbf: // res 7,a
+			z.af = z.af&0x00ff | uint16(z.res(7, byte(z.af>>8)))<<8
+		case 0xc0: // set 0,b
+			z.bc = z.bc&0x00ff | uint16(z.set(0, byte(z.bc>>8)))<<8
+		case 0xc1: // set 0,c
+			z.bc = z.bc&0xff00 | uint16(z.set(0, byte(z.bc)))
+		case 0xc2: // set 0,d
+			z.de = z.de&0x00ff | uint16(z.set(0, byte(z.de>>8)))<<8
+		case 0xc3: // set 0,e
+			z.de = z.de&0xff00 | uint16(z.set(0, byte(z.de)))
+		case 0xc4: // set 0,h
+			z.hl = z.hl&0x00ff | uint16(z.set(0, byte(z.hl>>8)))<<8
+		case 0xc5: // set 0,l
+			z.hl = z.hl&0xff00 | uint16(z.set(0, byte(z.hl)))
+		case 0xc6: // set 0,(hl)
+			val := z.set(0, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0xc7: // set 0,a
+			z.af = z.af&0x00ff | uint16(z.set(0, byte(z.af>>8)))<<8
+		case 0xc8: // set 1,b
+			z.bc = z.bc&0x00ff | uint16(z.set(1, byte(z.bc>>8)))<<8
+		case 0xc9: // set 1,c
+			z.bc = z.bc&0xff00 | uint16(z.set(1, byte(z.bc)))
+		case 0xca: // set 1,d
+			z.de = z.de&0x00ff | uint16(z.set(1, byte(z.de>>8)))<<8
+		case 0xcb: // set 1,e
+			z.de = z.de&0xff00 | uint16(z.set(1, byte(z.de)))
+		case 0xcc: // set 1,h
+			z.hl = z.hl&0x00ff | uint16(z.set(1, byte(z.hl>>8)))<<8
+		case 0xcd: // set 1,l
+			z.hl = z.hl&0xff00 | uint16(z.set(1, byte(z.hl)))
+		case 0xce: // set 1,(hl)
+			val := z.set(1, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0xcf: // set 1,a
+			z.af = z.af&0x00ff | uint16(z.set(1, byte(z.af>>8)))<<8
+		case 0xd0: // set 2,b
+			z.bc = z.bc&0x00ff | uint16(z.set(2, byte(z.bc>>8)))<<8
+		case 0xd1: // set 2,c
+			z.bc = z.bc&0xff00 | uint16(z.set(2, byte(z.bc)))
+		case 0xd2: // set 2,d
+			z.de = z.de&0x00ff | uint16(z.set(2, byte(z.de>>8)))<<8
+		case 0xd3: // set 2,e
+			z.de = z.de&0xff00 | uint16(z.set(2, byte(z.de)))
+		case 0xd4: // set 2,h
+			z.hl = z.hl&0x00ff | uint16(z.set(2, byte(z.hl>>8)))<<8
+		case 0xd5: // set 2,l
+			z.hl = z.hl&0xff00 | uint16(z.set(2, byte(z.hl)))
+		case 0xd6: // set 2,(hl)
+			val := z.set(2, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0xd7: // set 2,a
+			z.af = z.af&0x00ff | uint16(z.set(2, byte(z.af>>8)))<<8
+		case 0xd8: // set 3,b
+			z.bc = z.bc&0x00ff | uint16(z.set(3, byte(z.bc>>8)))<<8
+		case 0xd9: // set 3,c
+			z.bc = z.bc&0xff00 | uint16(z.set(3, byte(z.bc)))
+		case 0xda: // set 3,d
+			z.de = z.de&0x00ff | uint16(z.set(3, byte(z.de>>8)))<<8
+		case 0xdb: // set 3,e
+			z.de = z.de&0xff00 | uint16(z.set(3, byte(z.de)))
+		case 0xdc: // set 3,h
+			z.hl = z.hl&0x00ff | uint16(z.set(3, byte(z.hl>>8)))<<8
+		case 0xdd: // set 3,l
+			z.hl = z.hl&0xff00 | uint16(z.set(3, byte(z.hl)))
+		case 0xde: // set 3,(hl)
+			val := z.set(3, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0xdf: // set 3,a
+			z.af = z.af&0x00ff | uint16(z.set(3, byte(z.af>>8)))<<8
+		case 0xe0: // set 4,b
+			z.bc = z.bc&0x00ff | uint16(z.set(4, byte(z.bc>>8)))<<8
+		case 0xe1: // set 4,c
+			z.bc = z.bc&0xff00 | uint16(z.set(4, byte(z.bc)))
+		case 0xe2: // set 4,d
+			z.de = z.de&0x00ff | uint16(z.set(4, byte(z.de>>8)))<<8
+		case 0xe3: // set 4,e
+			z.de = z.de&0xff00 | uint16(z.set(4, byte(z.de)))
+		case 0xe4: // set 4,h
+			z.hl = z.hl&0x00ff | uint16(z.set(4, byte(z.hl>>8)))<<8
+		case 0xe5: // set 4,l
+			z.hl = z.hl&0xff00 | uint16(z.set(4, byte(z.hl)))
+		case 0xe6: // set 4,(hl)
+			val := z.set(4, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0xe7: // set 4,a
+			z.af = z.af&0x00ff | uint16(z.set(4, byte(z.af>>8)))<<8
+		case 0xe8: // set 5,b
+			z.bc = z.bc&0x00ff | uint16(z.set(5, byte(z.bc>>8)))<<8
+		case 0xe9: // set 5,c
+			z.bc = z.bc&0xff00 | uint16(z.set(5, byte(z.bc)))
+		case 0xea: // set 5,d
+			z.de = z.de&0x00ff | uint16(z.set(5, byte(z.de>>8)))<<8
+		case 0xeb: // set 5,e
+			z.de = z.de&0xff00 | uint16(z.set(5, byte(z.de)))
+		case 0xec: // set 5,h
+			z.hl = z.hl&0x00ff | uint16(z.set(5, byte(z.hl>>8)))<<8
+		case 0xed: // set 5,l
+			z.hl = z.hl&0xff00 | uint16(z.set(5, byte(z.hl)))
+		case 0xee: // set 5,(hl)
+			val := z.set(5, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0xef: // set 5,a
+			z.af = z.af&0x00ff | uint16(z.set(5, byte(z.af>>8)))<<8
+		case 0xf0: // set 6,b
+			z.bc = z.bc&0x00ff | uint16(z.set(6, byte(z.bc>>8)))<<8
+		case 0xf1: // set 6,c
+			z.bc = z.bc&0xff00 | uint16(z.set(6, byte(z.bc)))
+		case 0xf2: // set 6,d
+			z.de = z.de&0x00ff | uint16(z.set(6, byte(z.de>>8)))<<8
+		case 0xf3: // set 6,e
+			z.de = z.de&0xff00 | uint16(z.set(6, byte(z.de)))
+		case 0xf4: // set 6,h
+			z.hl = z.hl&0x00ff | uint16(z.set(6, byte(z.hl>>8)))<<8
+		case 0xf5: // set 6,l
+			z.hl = z.hl&0xff00 | uint16(z.set(6, byte(z.hl)))
+		case 0xf6: // set 6,(hl)
+			val := z.set(6, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0xf7: // set 6,a
+			z.af = z.af&0x00ff | uint16(z.set(6, byte(z.af>>8)))<<8
+		case 0xf8: // set 7,b
+			z.bc = z.bc&0x00ff | uint16(z.set(7, byte(z.bc>>8)))<<8
+		case 0xf9: // set 7,c
+			z.bc = z.bc&0xff00 | uint16(z.set(7, byte(z.bc)))
+		case 0xfa: // set 7,d
+			z.de = z.de&0x00ff | uint16(z.set(7, byte(z.de>>8)))<<8
+		case 0xfb: // set 7,e
+			z.de = z.de&0xff00 | uint16(z.set(7, byte(z.de)))
+		case 0xfc: // set 7,h
+			z.hl = z.hl&0x00ff | uint16(z.set(7, byte(z.hl>>8)))<<8
+		case 0xfd: // set 7,l
+			z.hl = z.hl&0xff00 | uint16(z.set(7, byte(z.hl)))
+		case 0xfe: // set 7,(hl)
+			val := z.set(7, z.bus.Read(z.hl))
+			z.bus.Write(z.hl, val)
+		case 0xff: // set 7,a
+			z.af = z.af&0x00ff | uint16(z.set(7, byte(z.af>>8)))<<8
 		default:
 			return fmt.Errorf("invalid instruction: 0x%02x "+
 				"0x%02x @ 0x%04x", opc, z.bus.Read(z.pc+1),
@@ -1291,41 +1615,9 @@ func (z *z80) step() error {
 		case 0xbe: // cp (ixl+d)
 			z.cp(z.bus.Read(z.ix + uint16(z.bus.Read(z.pc+2))))
 		case 0xcb:
-			// zilog really is crazy, 4th byte + bit 7&6
-			// descriminates the instruction
-			byte4 := z.bus.Read(z.pc + 3)
-			switch byte4 & 0xc0 {
-			case 0x00: // rot/shft
-				// operation lives in bit 5, 4 & 3
-				// Index	0	1	2	3	4	5	6	7
-				// Value	RLC	RRC	RL	RR	SLA	SRA	SLL	SRL
-				// Index	0	1	2	3	4	5	6	7
-				// Value	B	C	D	E	H	L	(HL)	A
-
-				op := byte4 & 38 >> 3
-				switch op {
-				case 0x00:
-					panic("rlc")
-				default:
-					panic(fmt.Sprintf("d %02x %02x %02x %02x %02x",
-						byte4&0xc0,
-						z.bus.Read(z.pc+0),
-						z.bus.Read(z.pc+1),
-						z.bus.Read(z.pc+2),
-						z.bus.Read(z.pc+3)))
-				}
-			case 0x40: // bit b,(ix+d)
-				bit := byte4 & 0x38 >> 3
-				displacement := uint16(z.bus.Read(z.pc + 2))
-				val := z.bus.Read(z.ix + displacement)
-				z.bit(bit, val)
-			default:
-				panic(fmt.Sprintf("d %02x %02x %02x %02x %02x",
-					byte4&0xc0,
-					z.bus.Read(z.pc+0),
-					z.bus.Read(z.pc+1),
-					z.bus.Read(z.pc+2),
-					z.bus.Read(z.pc+3)))
+			err := z.ddcb()
+			if err != nil {
+				return err
 			}
 		case 0xe1: // pop ix
 			z.ix = uint16(z.bus.Read(z.sp)) | z.ix&0xff00

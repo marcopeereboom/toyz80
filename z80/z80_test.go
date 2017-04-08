@@ -4402,6 +4402,56 @@ func TestInstructions(t *testing.T) {
 					z.af&carry == 0
 			},
 		},
+		// 0xcb 0x80
+		{
+			name: "res 0,b (bit 0 SET)",
+			mn:   "res",
+			dst:  "0",
+			src:  "b",
+			data: []byte{0xcb, 0x80},
+			init: func(z *z80) { z.bc = 0xff00 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.bc&0xff00 == 0xfe00
+			},
+		},
+		{
+			name: "bit 0,b (bit 0 CLEAR)",
+			mn:   "bit",
+			dst:  "0",
+			src:  "b",
+			data: []byte{0xcb, 0x40},
+			init: func(z *z80) { z.bc = 0xfe00 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.bc&0xff00 == 0xfe00
+			},
+		},
+		// 0xcb 0xbf
+		{
+			name: "res 7,a (bit 7 SET)",
+			mn:   "res",
+			dst:  "7",
+			src:  "a",
+			data: []byte{0xcb, 0xbf},
+			init: func(z *z80) { z.af = 0xff00 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&0xff00 == 0x7f00
+			},
+		},
+		{
+			name: "res 7,a (bit 7 CLEAR)",
+			mn:   "res",
+			dst:  "7",
+			src:  "a",
+			data: []byte{0xcb, 0xbf},
+			init: func(z *z80) { z.af = 0x7f00 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 &&
+					z.af&0xff00 == 0x7f00
+			},
+		},
 		// 0xcd
 		{
 			name: "call nn",
