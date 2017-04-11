@@ -224,10 +224,39 @@ func (z *z80) ddcb() error {
 					z.bus.Read(z.pc+2),
 					z.bus.Read(z.pc+3)))
 			}
+		case 0x04:
+			reg := byte4 & 7
+			switch reg {
+			case 0x00:
+				z.bc = z.bc&0x00ff | uint16(z.rl(byte(z.bc>>8)))<<8
+			case 0x01:
+				z.bc = z.bc&0xff00 | uint16(z.rl(byte(z.bc)))
+			case 0x02:
+				z.de = z.de&0x00ff | uint16(z.rl(byte(z.de>>8)))<<8
+			case 0x03:
+				z.de = z.de&0xff00 | uint16(z.rl(byte(z.de)))
+			case 0x04:
+				z.hl = z.de&0x00ff | uint16(z.rl(byte(z.de>>8)))<<8
+			case 0x05:
+				z.hl = z.de&0xff00 | uint16(z.rl(byte(z.de)))
+			case 0x06:
+				t := z.rl(z.bus.Read(z.hl))
+				z.bus.Write(z.hl, t)
+			case 0x07:
+				z.af = z.af&0x00ff | uint16(z.rl(byte(z.af>>8)))<<8
+			default:
+				panic(fmt.Sprintf("---d %02x %02x %02x %02x %02x",
+					byte4&0xc0,
+					z.bus.Read(z.pc+0),
+					z.bus.Read(z.pc+1),
+					z.bus.Read(z.pc+2),
+					z.bus.Read(z.pc+3)))
+			}
 		default:
 			// XXX should become a nop
-			panic(fmt.Sprintf("d %02x %02x %02x %02x %02x",
+			panic(fmt.Sprintf("d %02x op %02x %02x %02x %02x %02x",
 				byte4&0xc0,
+				op,
 				z.bus.Read(z.pc+0),
 				z.bus.Read(z.pc+1),
 				z.bus.Read(z.pc+2),
