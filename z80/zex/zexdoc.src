@@ -108,73 +108,73 @@ done:	ld	de,msg2
 	jp	0		; warm boot
 
 tests:
-	dw	adc16
-	dw	add16
-	dw	add16x
-	dw	add16y
-	dw	alu8i
-	dw	alu8r
-	dw	alu8rx
-	dw	alu8x
-	dw	bitx
-	dw	bitz80
-	dw	cpd1
-	dw	cpi1
-	dw	daaop	; can't use opcode as label
-	dw	inca
-	dw	incb
-	dw	incbc
-	dw	incc
-	dw	incd
-	dw	incde
-	dw	ince
-	dw	inch
-	dw	inchl
-	dw	incix
-	dw	inciy
-	dw	incl
-	dw	incm
-	dw	incsp
-	dw	incx
-	dw	incxh
-	dw	incxl
-	dw	incyh
-	dw	incyl
-	dw	ld161
-	dw	ld162
-	dw	ld163
-	dw	ld164
-	dw	ld165
-	dw	ld166
-	dw	ld167
-	dw	ld168
-	dw	ld16im
-	dw	ld16ix
-	dw	ld8bd
-	dw	ld8im
-	dw	ld8imx
-	dw	ld8ix1
-	dw	ld8ix2
-	dw	ld8ix3
-	dw	ld8ixy
-	dw	ld8rr
-	dw	ld8rrx
-	dw	lda
-	dw	ldd1
-	dw	ldd2
-	dw	ldi1
-	dw	ldi2
-	dw	negop	; jgh: can't use opcode as label
-	dw	rldop	; jgh: can't use opcode as label
-	dw	rot8080
-	dw	rotxy
-	dw	rotz80
-	dw	srz80
-	dw	srzx
-	dw	st8ix1
-	dw	st8ix2
-	dw	st8ix3
-	dw	stabd
+	; dw	adc16	; ok
+	; dw	add16	; ok
+	; dw	add16x	; ok
+	; dw	add16y	; ok
+	; dw	alu8i	; ok
+	; dw	alu8r	; ok
+	; dw	alu8rx	; ok
+	; dw	alu8x	; ok
+	; dw	bitx	; ok
+	; dw	bitz80	; ok
+	; dw	cpd1	; ok
+	; dw	cpi1	; ok
+	; dw	daaop	; ok
+	; dw	inca	; ok
+	; dw	incb	; ok
+	; dw	incbc	; ok
+	; dw	incc	; ok
+	; dw	incd	; ok
+	; dw	incde	; ok
+	; dw	ince	; ok
+	; dw	inch	; ok
+	; dw	inchl	; ok
+	; dw	incix	; ok
+	; dw	inciy	; ok
+	; dw	incl	; ok
+	; dw	incm	; ok
+	; dw	incsp	; ok
+	; dw	incx	; ok
+	; dw	incxh	; ok
+	; dw	incxl	; ok
+	; dw	incyh	; ok
+	; dw	incyl	; ok
+	; dw	ld161	; ok
+	; dw	ld162	; ok
+	; dw	ld163	; ok
+	; dw	ld164	; ok
+	; dw	ld165	; ok
+	; dw	ld166	; ok
+	; dw	ld167	; ok
+	; dw	ld168	; ok
+	; dw	ld16im	; ok
+	; dw	ld16ix	; ok
+	; dw	ld8bd	; ok
+	; dw	ld8im	; ok
+	; dw	ld8imx	; ok
+	; dw	ld8ix1	; ok
+	; dw	ld8ix2	; ok
+	; dw	ld8ix3	; ok
+	; dw	ld8ixy	; ok
+	; dw	ld8rr	; ok
+	dw	ld8rrx	; NI
+	; dw	lda	; ok
+	; dw	ldd1	; ok
+	; dw	ldd2	; ok
+	; dw	ldi1	; ok
+	; dw	ldi2	; ok
+	; dw	negop	; ok
+	; dw	rldop	; ok
+	; dw	rot8080	; ok
+	; dw	rotxy	; FAIL
+	; dw	rotz80	; ok
+	; dw	srz80	; ok
+	; dw	srzx	; NI
+	; dw	st8ix1	; ok
+	; dw	st8ix2	; ok
+	; dw	st8ix3	; ok
+	; dw	stabd	; ok
 	dw	0
 
 ; jgh: macro syntax changed for ZMAC and MAXAM

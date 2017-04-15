@@ -2353,6 +2353,24 @@ var (
 			noBytes:  4,
 			noCycles: 19,
 		},
+		0x44: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"b"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x45: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"b"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
 		0x46: {
 			mnemonic: []string{"ld"},
 			dst:      register,
@@ -2361,6 +2379,24 @@ var (
 			srcR:     []string{"ix"},
 			noBytes:  3,
 			noCycles: 19,
+		},
+		0x4c: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"c"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x4d: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"c"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
 		},
 		0x4e: {
 			mnemonic: []string{"ld"},
@@ -2371,6 +2407,24 @@ var (
 			noBytes:  3,
 			noCycles: 19,
 		},
+		0x54: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"d"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x55: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"d"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
 		0x56: {
 			mnemonic: []string{"ld"},
 			dst:      register,
@@ -2379,6 +2433,24 @@ var (
 			srcR:     []string{"ix"},
 			noBytes:  3,
 			noCycles: 19,
+		},
+		0x5c: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"e"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x5d: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"e"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
 		},
 		0x5e: {
 			mnemonic: []string{"ld"},
@@ -2389,6 +2461,60 @@ var (
 			noBytes:  3,
 			noCycles: 19,
 		},
+		0x60: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixh"},
+			src:      register,
+			srcR:     []string{"b"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x61: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixh"},
+			src:      register,
+			srcR:     []string{"c"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x62: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixh"},
+			src:      register,
+			srcR:     []string{"d"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x63: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixh"},
+			src:      register,
+			srcR:     []string{"e"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x64: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixh"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x65: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixh"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
 		0x66: {
 			mnemonic: []string{"ld"},
 			dst:      register,
@@ -2398,6 +2524,69 @@ var (
 			noBytes:  3,
 			noCycles: 19,
 		},
+		0x67: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixh"},
+			src:      register,
+			srcR:     []string{"a"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x68: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixl"},
+			src:      register,
+			srcR:     []string{"b"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x69: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixl"},
+			src:      register,
+			srcR:     []string{"c"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x6a: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixl"},
+			src:      register,
+			srcR:     []string{"d"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x6b: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixl"},
+			src:      register,
+			srcR:     []string{"e"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x6c: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixl"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x6d: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixl"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
 		0x6e: {
 			mnemonic: []string{"ld"},
 			dst:      register,
@@ -2406,6 +2595,15 @@ var (
 			srcR:     []string{"ix"},
 			noBytes:  3,
 			noCycles: 19,
+		},
+		0x6f: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"ixl"},
+			src:      register,
+			srcR:     []string{"a"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
 		},
 		0x70: {
 			mnemonic: []string{"ld"},
@@ -2477,6 +2675,24 @@ var (
 			srcR:     []string{"a"},
 			noBytes:  3,
 			noCycles: 19,
+		},
+		0x7c: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x7d: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"ixl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
 		},
 		0x7e: {
 			mnemonic: []string{"ld"},
@@ -2717,6 +2933,15 @@ var (
 			noBytes:  2,
 			noCycles: 15,
 		},
+		0xf9: opcode{
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"sp"},
+			src:      register,
+			srcR:     []string{"ix"},
+			noBytes:  2,
+			noCycles: 10,
+		},
 	}
 	opcodesED = [256]opcode{
 		0x42: {
@@ -2757,6 +2982,11 @@ var (
 			src:      extended,
 			noBytes:  4,
 			noCycles: 20,
+		},
+		0x4d: {
+			mnemonic: []string{"reti"},
+			noBytes:  2,
+			noCycles: 14,
 		},
 		0x52: {
 			mnemonic: []string{"sbc"},
@@ -3042,6 +3272,24 @@ var (
 			noBytes:  2,
 			noCycles: 15,
 		},
+		0x44: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"b"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x45: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"b"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
 		0x46: {
 			mnemonic: []string{"ld"},
 			dst:      register,
@@ -3050,6 +3298,24 @@ var (
 			srcR:     []string{"iy"},
 			noBytes:  3,
 			noCycles: 19,
+		},
+		0x4c: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"c"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x4d: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"c"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
 		},
 		0x4e: {
 			mnemonic: []string{"ld"},
@@ -3060,6 +3326,24 @@ var (
 			noBytes:  3,
 			noCycles: 19,
 		},
+		0x54: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"d"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x55: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"d"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
 		0x56: {
 			mnemonic: []string{"ld"},
 			dst:      register,
@@ -3068,6 +3352,24 @@ var (
 			srcR:     []string{"iy"},
 			noBytes:  3,
 			noCycles: 19,
+		},
+		0x5c: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"e"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x5d: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"e"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
 		},
 		0x5e: {
 			mnemonic: []string{"ld"},
@@ -3078,6 +3380,60 @@ var (
 			noBytes:  3,
 			noCycles: 19,
 		},
+		0x60: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyh"},
+			src:      register,
+			srcR:     []string{"b"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x61: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyh"},
+			src:      register,
+			srcR:     []string{"c"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x62: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyh"},
+			src:      register,
+			srcR:     []string{"d"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x63: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyh"},
+			src:      register,
+			srcR:     []string{"e"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x64: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyh"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x65: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyh"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
 		0x66: {
 			mnemonic: []string{"ld"},
 			dst:      register,
@@ -3087,6 +3443,69 @@ var (
 			noBytes:  3,
 			noCycles: 19,
 		},
+		0x67: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyh"},
+			src:      register,
+			srcR:     []string{"a"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x68: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyl"},
+			src:      register,
+			srcR:     []string{"b"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x69: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyl"},
+			src:      register,
+			srcR:     []string{"c"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x6a: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyl"},
+			src:      register,
+			srcR:     []string{"d"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x6b: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyl"},
+			src:      register,
+			srcR:     []string{"e"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x6c: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyl"},
+			src:      register,
+			srcR:     []string{"ixh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x6d: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyl"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
 		0x6e: {
 			mnemonic: []string{"ld"},
 			dst:      register,
@@ -3095,6 +3514,15 @@ var (
 			srcR:     []string{"iy"},
 			noBytes:  3,
 			noCycles: 19,
+		},
+		0x6f: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"iyl"},
+			src:      register,
+			srcR:     []string{"a"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
 		},
 		0x70: {
 			mnemonic: []string{"ld"},
@@ -3166,6 +3594,24 @@ var (
 			srcR:     []string{"a"},
 			noBytes:  3,
 			noCycles: 19,
+		},
+		0x7c: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyh"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
+		},
+		0x7d: {
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"a"},
+			src:      register,
+			srcR:     []string{"iyl"},
+			noBytes:  2,
+			noCycles: 8, // http://www.z80.info/zip/z80-documented.pdf
 		},
 		0x7e: {
 			mnemonic: []string{"ld"},
@@ -3406,6 +3852,15 @@ var (
 			noBytes:  2,
 			noCycles: 15,
 		},
+		0xf9: opcode{
+			mnemonic: []string{"ld"},
+			dst:      register,
+			dstR:     []string{"sp"},
+			src:      register,
+			srcR:     []string{"iy"},
+			noBytes:  2,
+			noCycles: 10,
+		},
 	}
 )
 
@@ -3547,8 +4002,13 @@ var (
 			noCycles: 4,
 		},
 
-		// 0x10
-		opcode{},
+		// 0x10 djnz
+		opcode{
+			mnemonic: []string{"djnz"},
+			dst:      displacement,
+			noBytes:  2,
+			noCycles: 8, // b == 0
+		},
 		// 0x11 ld de,nn
 		opcode{
 			mnemonic: []string{"ld", "lxi"},
@@ -3674,8 +4134,15 @@ var (
 			noCycles: 4,
 		},
 
-		// 0x20
-		opcode{},
+		// 0x20 jr nz,d
+		opcode{
+			mnemonic: []string{"jr"},
+			dst:      condition,
+			dstR:     []string{"nz", ""},
+			src:      displacement,
+			noBytes:  2,
+			noCycles: 12, // XXX or 7
+		},
 		// 0x21 ld hl,nn
 		opcode{
 			mnemonic: []string{"ld", "lxi"},
@@ -3801,8 +4268,15 @@ var (
 			noCycles: 4,
 		},
 
-		// 0x30
-		opcode{},
+		// 0x30 jr nc,d
+		opcode{
+			mnemonic: []string{"jr"},
+			dst:      condition,
+			dstR:     []string{"nc", ""},
+			src:      displacement,
+			noBytes:  2,
+			noCycles: 12, // XXX or 7
+		},
 		// 0x31 ld sp,nn
 		opcode{
 			mnemonic: []string{"ld", "lxi"},
@@ -3860,8 +4334,15 @@ var (
 			noBytes:  1,
 			noCycles: 4,
 		},
-		// 0x38
-		opcode{},
+		// 0x38 jr c,d
+		opcode{
+			mnemonic: []string{"jr", ""},
+			dst:      condition,
+			dstR:     []string{"c", ""},
+			src:      displacement,
+			noBytes:  2,
+			noCycles: 12, // XXX or 7
+		},
 		// 0x39 add hl,sp
 		opcode{
 			mnemonic: []string{"add", "dad"},

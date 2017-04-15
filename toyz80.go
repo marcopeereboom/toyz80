@@ -323,6 +323,12 @@ func _main() error {
 
 			if err != nil {
 				switch err.(type) {
+				case z80.HaltError:
+					fmt.Fprintf(l.Stdout(), "CPU halted\n")
+					pause = true
+					fmt.Fprintf(l.Stdout(), "%v\n", err)
+					fmt.Fprintf(l.Stdout(), "%v\n",
+						z.DumpRegisters())
 				case z80.BreakpointError:
 					pause = true
 					fmt.Fprintf(l.Stdout(), "%v\n", err)
