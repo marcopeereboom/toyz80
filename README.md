@@ -1,11 +1,11 @@
 # toyz80
 Emulate Z80/i8080 CPU.
 
-This is a toy.  It is not complete so don't use it, yet!  Do send me PRs!
+This is a toy.  It is not complete yet!  Do send me PRs!
 
 The idea is to get to CP/M 2.2 compatibility and then build this fictional computer in actual hardware.
 
-Currently UT (Unit Test) is rigged in and there is a basic Z80 computer being emulated that has a console and supports about 75% of the opcodes.
+Currently UT (Unit Test) is rigged in and there is a basic Z80 computer being emulated that has a console and supports about 95% of the opcodes.  It almost passes the famed zexdoc (borrowed from https://github.com/anotherlin/z80emu/tree/master/testfiles) tests.  Some code compiled with the outstanding sdcc (http://sdcc.sourceforge.net/) C compiler works as well.  A few more opcodes need debugging and printf("%s\r\n", "moo"); will work!
 
 In order to play with this code follow the following steps:
 1. Install Go.
@@ -29,6 +29,8 @@ There now is a minimal implementation of a fictional computer.  In order to play
 3. `./toyz80 device=console,0x02-0x02 device=ram,0x0000-65536 load=0,src/cpuville/tinybasic2dms.bin`
 
 This launches the toy z80 computer with tiny basic at address 0.  The machine will now wait for you to connect the console.  The console is a unix socket hard coded at /tmp/toyz80.socket.  Connecting to this socket can be done using socat in the following manner: "socat /dev/tty,rawer UNIX-CLIENT:/tmp/toyz80.socket".  The console is where the machine output goes.
+
+Unfortunately Windows doesn't handle sockets the way UNIX does and therefore it does not work.  At some point this will be fixed (who uses Windows anyway?).
 
 At this point the z80 computer is ready to be either started or debugged etc.
 
