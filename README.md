@@ -338,4 +338,7 @@ ld (<ix,iy>+1),<b,c,d,e>......  OK
 ld (<ix,iy>+1),<h,l>..........  OK
 ld (<ix,iy>+1),a..............  OK
 ld (<bc,de>),a................  OK
+Tests complete--- PASS: TestZexDoc (330.22s)
+PASS
+ok      github.com/marcopeereboom/toyz80/z80    330.241s
 ```
