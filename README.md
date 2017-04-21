@@ -5,7 +5,7 @@ This is a toy.  It is not complete yet!  Do send me PRs!
 
 The idea is to get to CP/M 2.2 compatibility and then build this fictional computer in actual hardware.
 
-Currently UT (Unit Test) is rigged in and there is a basic Z80 computer being emulated that has a console and supports about 95% of the opcodes.  It almost passes the famed zexdoc (borrowed from https://github.com/anotherlin/z80emu/tree/master/testfiles) tests.  Some code compiled with the outstanding sdcc (http://sdcc.sourceforge.net/) C compiler works as well.  A few more opcodes need debugging and printf("%s\r\n", "moo"); will work!
+Currently UT (Unit Test) is rigged in and there is a basic Z80 computer being emulated that has a console and supports about 95% of the opcodes.  It almost passes the famed zexdoc (borrowed from https://github.com/anotherlin/z80emu/tree/master/testfiles) tests.  Some code compiled with the outstanding sdcc (http://sdcc.sourceforge.net/) C compiler works as well.  A few more opcodes need debugging and `printf("%s\r\n", "moo");` will work!
 
 Once the last few opcodes maked it in and are debugged it is time to add interrupt support and some additional devices (HDD, tape, etc)
 
