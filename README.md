@@ -7,6 +7,8 @@ The idea is to get to CP/M 2.2 compatibility and then build this fictional compu
 
 Currently UT (Unit Test) is rigged in and there is a basic Z80 computer being emulated that has a console and supports about 95% of the opcodes.  It almost passes the famed zexdoc (borrowed from https://github.com/anotherlin/z80emu/tree/master/testfiles) tests.  Some code compiled with the outstanding sdcc (http://sdcc.sourceforge.net/) C compiler works as well.  A few more opcodes need debugging and printf("%s\r\n", "moo"); will work!
 
+Once the last few opcodes maked it in and are debugged it is time to add interrupt support and some additional devices (HDD, tape, etc)
+
 In order to play with this code follow the following steps:
 1. Install Go.
 2. `go get github.com/marcopeereboom/toyz80`
@@ -44,3 +46,79 @@ Currently the following commands are supported in the control window:
 * `registers`
 * `step [count]`
 * `pc <address>`
+
+### Current zexdoc results
+```
+$ go test -v github.com/marcopeereboom/toyz80/z80 -run=TestZ  
+=== RUN   TestZexDoc
+Z80doc instruction exerciser
+<adc,sbc> hl,<bc,de,hl,sp>....  OK
+add hl,<bc,de,hl,sp>..........  OK
+add ix,<bc,de,ix,sp>..........  OK
+add iy,<bc,de,iy,sp>..........  OK
+aluop a,nn....................  OK
+aluop a,<b,c,d,e,h,l,(hl),a>..  OK
+aluop a,<ixh,ixl,iyh,iyl>.....  OK
+aluop a,(<ix,iy>+1)...........  OK
+bit n,(<ix,iy>+1).............  OK
+bit n,<b,c,d,e,h,l,(hl),a>....  OK
+cpd<r>........................  OK
+cpi<r>........................  OK
+<daa,cpl,scf,ccf>.............  OK
+<inc,dec> a...................  OK
+<inc,dec> b...................  OK
+<inc,dec> bc..................  OK
+<inc,dec> c...................  OK
+<inc,dec> d...................  OK
+<inc,dec> de..................  OK
+<inc,dec> e...................  OK
+<inc,dec> h...................  OK
+<inc,dec> hl..................  OK
+<inc,dec> ix..................  OK
+<inc,dec> iy..................  OK
+<inc,dec> l...................  OK
+<inc,dec> iy..................  OK
+<inc,dec> l...................  OK
+<inc,dec> (hl)................  OK
+<inc,dec> sp..................  OK
+<inc,dec> (<ix,iy>+1).........  OK
+<inc,dec> ixh.................  OK
+<inc,dec> ixl.................  OK
+<inc,dec> iyh.................  OK
+<inc,dec> iyl.................  OK
+ld <bc,de>,(nnnn).............  OK
+ld hl,(nnnn)..................  OK
+ld sp,(nnnn)..................  OK
+ld <ix,iy>,(nnnn).............  OK
+ld (nnnn),<bc,de>.............  OK
+ld (nnnn),hl..................  OK
+ld (nnnn),sp..................  OK
+ld (nnnn),<ix,iy>.............  OK
+ld <bc,de,hl,sp>,nnnn.........  OK
+ld <ix,iy>,nnnn...............  OK
+ld a,<(bc),(de)>..............  OK
+ld <b,c,d,e,h,l,(hl),a>,nn....  OK
+ld (<ix,iy>+1),nn.............  OK
+ld <b,c,d,e>,(<ix,iy>+1)......  OK
+ld <h,l>,(<ix,iy>+1)..........  OK
+ld a,(<ix,iy>+1)..............  OK
+ld <ixh,ixl,iyh,iyl>,nn.......  OK
+ld <bcdehla>,<bcdehla>........  OK
+ld <bcdexya>,<bcdexya>........  OK
+ld a,(nnnn) / ld (nnnn),a.....  OK
+ldd<r> (1)....................  OK
+ldd<r> (2)....................  OK
+ldi<r> (1)....................  OK
+ldi<r> (2)....................  OK
+neg...........................  OK
+<rrd,rld>.....................  OK
+<rlca,rrca,rla,rra>...........  OK
+shf/rot (<ix,iy>+1)...........  ERROR **** crc expected:713acd81 found:f653b6ea
+shf/rot <b,c,d,e,h,l,(hl),a>..  OK
+<set,res> n,<bcdehl(hl)a>.....  OK
+<set,res> n,(<ix,iy>+1).......  SKIPPED
+ld (<ix,iy>+1),<b,c,d,e>......  OK
+ld (<ix,iy>+1),<h,l>..........  OK
+ld (<ix,iy>+1),a..............  OK
+ld (<bc,de>),a................  OK
+```
