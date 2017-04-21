@@ -40,10 +40,9 @@ play with it follow these steps:
 This launches the toy z80 computer with tiny basic at address 0.  The machine
 will now wait for you to connect the console.  The console is a unix socket
 hard coded at /tmp/toyz80.socket.  Connecting to this socket can be done using
-socat in the following manner: `socat /dev/tty,rawer
-UNIX-CLIENT:/tmp/toyz80.socket`.  The console is where the machine output goes.
-This may seem a little hokey but you'll thank me later (now it *is* a real
-serial port that can redirected etc).
+socat in the following manner: `socat /dev/tty,rawer UNIX-CLIENT:/tmp/toyz80.socket`.
+The console is where the machine output goes.  This may seem a little hokey but
+you'll thank me later (now it *is* a real serial port that can redirected etc).
 
 Unfortunately Windows doesn't handle sockets the way UNIX does and therefore it
 does not work.  At some point this will be fixed (who uses Windows anyway?).
@@ -78,7 +77,7 @@ Currently the following commands are supported in the control window:
 ### cpuville
 
 In `src/cpuville` you'll find some publicly available goodies.  I borrowed this
-from the excellent Donn Stewart cpuville pages at: http://cpuville.com/
+from the excellent Donn Stewart cpuville pages at: http://cpuville.com/Z80.htm
 
 You'll find Donn's ROM monitor and tinybasic which runs on his computer.  Since
 toyz80 is based of that hardware it works as expected.
