@@ -170,7 +170,7 @@ tests:
 	dw	rotxy	; ok
 	dw	rotz80	; ok
 	dw	srz80	; ok
-	; dw	srzx	; NI
+	dw	srzx	; ok
 	dw	st8ix1	; ok
 	dw	st8ix2	; ok
 	dw	st8ix3	; ok
