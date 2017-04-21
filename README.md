@@ -113,7 +113,7 @@ ldi<r> (2)....................  OK
 neg...........................  OK
 <rrd,rld>.....................  OK
 <rlca,rrca,rla,rra>...........  OK
-shf/rot (<ix,iy>+1)...........  ERROR **** crc expected:713acd81 found:f653b6ea
+shf/rot (<ix,iy>+1)...........  OK
 shf/rot <b,c,d,e,h,l,(hl),a>..  OK
 <set,res> n,<bcdehl(hl)a>.....  OK
 <set,res> n,(<ix,iy>+1).......  SKIPPED
