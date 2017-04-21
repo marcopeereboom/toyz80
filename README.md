@@ -30,7 +30,7 @@ There now is a minimal implementation of a fictional computer.  In order to play
 2. `go build`
 3. `./toyz80 device=console,0x02-0x02 device=ram,0x0000-65536 load=0,src/cpuville/tinybasic2dms.bin`
 
-This launches the toy z80 computer with tiny basic at address 0.  The machine will now wait for you to connect the console.  The console is a unix socket hard coded at /tmp/toyz80.socket.  Connecting to this socket can be done using socat in the following manner: "socat /dev/tty,rawer UNIX-CLIENT:/tmp/toyz80.socket".  The console is where the machine output goes.
+This launches the toy z80 computer with tiny basic at address 0.  The machine will now wait for you to connect the console.  The console is a unix socket hard coded at /tmp/toyz80.socket.  Connecting to this socket can be done using socat in the following manner: `socat /dev/tty,rawer UNIX-CLIENT:/tmp/toyz80.socket`.  The console is where the machine output goes.  This may seem a little hokey but you'll thank me later (now it *is* a real serial port that can redirected etc).
 
 Unfortunately Windows doesn't handle sockets the way UNIX does and therefore it does not work.  At some point this will be fixed (who uses Windows anyway?).
 

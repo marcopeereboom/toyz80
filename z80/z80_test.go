@@ -568,6 +568,30 @@ func TestInstructions(t *testing.T) {
 					z.af&addsub == 0
 			},
 		},
+		// 0x10 djnz
+		{
+
+			name: "djnz b==1",
+			mn:   "djnz",
+			dst:  "$0005",
+			data: []byte{0x10, 0x03},
+			init: func(z *z80) { z.bc = 0x0100 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0002 && z.bc == 0x0000
+			},
+		},
+		{
+
+			name: "djnz b==2",
+			mn:   "djnz",
+			dst:  "$0005",
+			data: []byte{0x10, 0x03},
+			init: func(z *z80) { z.bc = 0x0200 },
+			expect: func(z *z80) bool {
+				return z.pc == 0x0005 && z.bc == 0x0100
+			},
+			dontSkipPC: true,
+		},
 		// 0x11 ld de,nn
 		{
 
