@@ -108,73 +108,73 @@ done:	ld	de,msg2
 	jp	0		; warm boot
 
 tests:
-	; dw	adc16	; ok
-	; dw	add16	; ok
-	; dw	add16x	; ok
-	; dw	add16y	; ok
-	; dw	alu8i	; ok
-	; dw	alu8r	; ok
-	; dw	alu8rx	; ok
-	; dw	alu8x	; ok
-	; dw	bitx	; ok
-	; dw	bitz80	; ok
-	; dw	cpd1	; ok
-	; dw	cpi1	; ok
-	; dw	daaop	; ok
-	; dw	inca	; ok
-	; dw	incb	; ok
-	; dw	incbc	; ok
-	; dw	incc	; ok
-	; dw	incd	; ok
-	; dw	incde	; ok
-	; dw	ince	; ok
-	; dw	inch	; ok
-	; dw	inchl	; ok
-	; dw	incix	; ok
-	; dw	inciy	; ok
-	; dw	incl	; ok
-	; dw	incm	; ok
-	; dw	incsp	; ok
-	; dw	incx	; ok
-	; dw	incxh	; ok
-	; dw	incxl	; ok
-	; dw	incyh	; ok
-	; dw	incyl	; ok
-	; dw	ld161	; ok
-	; dw	ld162	; ok
-	; dw	ld163	; ok
-	; dw	ld164	; ok
-	; dw	ld165	; ok
-	; dw	ld166	; ok
-	; dw	ld167	; ok
-	; dw	ld168	; ok
-	; dw	ld16im	; ok
-	; dw	ld16ix	; ok
-	; dw	ld8bd	; ok
-	; dw	ld8im	; ok
-	; dw	ld8imx	; ok
-	; dw	ld8ix1	; ok
-	; dw	ld8ix2	; ok
-	; dw	ld8ix3	; ok
-	; dw	ld8ixy	; ok
-	; dw	ld8rr	; ok
-	; dw	ld8rrx	; ok
-	; dw	lda	; ok
-	; dw	ldd1	; ok
-	; dw	ldd2	; ok
-	; dw	ldi1	; ok
-	; dw	ldi2	; ok
-	; dw	negop	; ok
-	; dw	rldop	; ok
-	; dw	rot8080	; ok
-	dw	rotxy	; FAIL
-	; dw	rotz80	; ok
-	; dw	srz80	; ok
+	dw	adc16	; ok
+	dw	add16	; ok
+	dw	add16x	; ok
+	dw	add16y	; ok
+	dw	alu8i	; ok
+	dw	alu8r	; ok
+	dw	alu8rx	; ok
+	dw	alu8x	; ok
+	dw	bitx	; ok
+	dw	bitz80	; ok
+	dw	cpd1	; ok
+	dw	cpi1	; ok
+	dw	daaop	; ok
+	dw	inca	; ok
+	dw	incb	; ok
+	dw	incbc	; ok
+	dw	incc	; ok
+	dw	incd	; ok
+	dw	incde	; ok
+	dw	ince	; ok
+	dw	inch	; ok
+	dw	inchl	; ok
+	dw	incix	; ok
+	dw	inciy	; ok
+	dw	incl	; ok
+	dw	incm	; ok
+	dw	incsp	; ok
+	dw	incx	; ok
+	dw	incxh	; ok
+	dw	incxl	; ok
+	dw	incyh	; ok
+	dw	incyl	; ok
+	dw	ld161	; ok
+	dw	ld162	; ok
+	dw	ld163	; ok
+	dw	ld164	; ok
+	dw	ld165	; ok
+	dw	ld166	; ok
+	dw	ld167	; ok
+	dw	ld168	; ok
+	dw	ld16im	; ok
+	dw	ld16ix	; ok
+	dw	ld8bd	; ok
+	dw	ld8im	; ok
+	dw	ld8imx	; ok
+	dw	ld8ix1	; ok
+	dw	ld8ix2	; ok
+	dw	ld8ix3	; ok
+	dw	ld8ixy	; ok
+	dw	ld8rr	; ok
+	dw	ld8rrx	; ok
+	dw	lda	; ok
+	dw	ldd1	; ok
+	dw	ldd2	; ok
+	dw	ldi1	; ok
+	dw	ldi2	; ok
+	dw	negop	; ok
+	dw	rldop	; ok
+	dw	rot8080	; ok
+	dw	rotxy	; ok
+	dw	rotz80	; ok
+	dw	srz80	; ok
 	; dw	srzx	; NI
-	; dw	st8ix1	; ok
-	; dw	st8ix2	; ok
-	; dw	st8ix3	; ok
-	; dw	stabd	; ok
+	dw	st8ix1	; ok
+	dw	st8ix2	; ok
+	dw	st8ix3	; ok
+	dw	stabd	; ok
 	dw	0
 
 ; jgh: macro syntax changed for ZMAC and MAXAM

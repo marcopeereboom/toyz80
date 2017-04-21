@@ -198,44 +198,31 @@ func (z *z80) ddcb() error {
 	xx := byte4 >> 6
 	yy := 0x07 & (byte4 >> 3)
 	zz := 0x07 & byte4
-	fmt.Printf("x %x y %x z %x dd cb %02x %02x -> ", xx, yy, zz,
-		z.bus.Read(z.pc+2), byte4)
 	switch xx {
 	case 0:
 		if zz == 6 {
 			// rot[y],(IX+d)
 			displacement := uint16(z.bus.Read(z.pc + 2))
 			val := z.bus.Read(z.ix + displacement)
-			fmt.Printf("val %02x F %02x ", val, byte(z.af))
 			switch yy {
 			case 0x00:
-				fmt.Printf("rlc ")
 				val = z.rlc(val)
 			case 0x01:
-				fmt.Printf("rrc ")
 				val = z.rrc(val)
 			case 0x02:
-				fmt.Printf("rl ")
 				val = z.rl(val)
 			case 0x03:
-				fmt.Printf("rr ")
 				val = z.rr(val)
 			case 0x04:
-				fmt.Printf("sla ")
 				val = z.sla(val)
 			case 0x05:
-				fmt.Printf("sra ")
 				val = z.sra(val)
 			case 0x06:
-				fmt.Printf("sll ")
 				val = z.sll(val)
 			case 0x07:
-				fmt.Printf("srl ")
 				val = z.srl(val)
 			}
 			z.bus.Write(z.ix+displacement, val)
-			fmt.Printf("new val %02x new F %02x\n",
-				z.bus.Read(z.ix+displacement), byte(z.af))
 			z.totalCycles += 1 // XXX
 			z.pc += 4
 			return nil
@@ -301,104 +288,105 @@ func (z *z80) ddcb() error {
 		panic("xxx")
 	}
 
-	//switch byte4 & 0xc0 {
-	//case 0x00: // rot/shft
-	//	// operation lives in bit 5, 4 & 3
-	//	// Index	0	1	2	3	4	5	6	7
-	//	// Value	RLC	RRC	RL	RR	SLA	SRA	SLL	SRL
-	//	// Index	0	1	2	3	4	5	6	7
-	//	// Value	B	C	D	E	H	L	(HL)	A
-	//	op := byte4 & 38 >> 3
-	//	switch op {
-	//	case 0x00:
-	//		reg := byte4 & 7
-	//		switch reg {
-	//		case 0x00:
-	//			z.bc = z.bc&0x00ff | uint16(z.rlc(byte(z.bc>>8)))<<8
-	//		case 0x01:
-	//			z.bc = z.bc&0xff00 | uint16(z.rlc(byte(z.bc)))
-	//		case 0x02:
-	//			z.de = z.de&0x00ff | uint16(z.rlc(byte(z.de>>8)))<<8
-	//		case 0x03:
-	//			z.de = z.de&0xff00 | uint16(z.rlc(byte(z.de)))
-	//		case 0x04:
-	//			z.hl = z.de&0x00ff | uint16(z.rlc(byte(z.de>>8)))<<8
-	//		case 0x05:
-	//			z.hl = z.de&0xff00 | uint16(z.rlc(byte(z.de)))
-	//		case 0x06:
-	//			t := z.rlc(z.bus.Read(z.hl))
-	//			z.bus.Write(z.hl, t)
-	//		case 0x07:
-	//			z.af = z.af&0x00ff | uint16(z.rlc(byte(z.af>>8)))<<8
-	//		default:
-	//			panic(fmt.Sprintf("---d %02x %02x %02x %02x %02x",
-	//				byte4&0xc0,
-	//				z.bus.Read(z.pc+0),
-	//				z.bus.Read(z.pc+1),
-	//				z.bus.Read(z.pc+2),
-	//				z.bus.Read(z.pc+3)))
-	//		}
-	//	case 0x04:
-	//		reg := byte4 & 7
-	//		switch reg {
-	//		case 0x00:
-	//			z.bc = z.bc&0x00ff | uint16(z.rl(byte(z.bc>>8)))<<8
-	//		case 0x01:
-	//			z.bc = z.bc&0xff00 | uint16(z.rl(byte(z.bc)))
-	//		case 0x02:
-	//			z.de = z.de&0x00ff | uint16(z.rl(byte(z.de>>8)))<<8
-	//		case 0x03:
-	//			z.de = z.de&0xff00 | uint16(z.rl(byte(z.de)))
-	//		case 0x04:
-	//			z.hl = z.de&0x00ff | uint16(z.rl(byte(z.de>>8)))<<8
-	//		case 0x05:
-	//			z.hl = z.de&0xff00 | uint16(z.rl(byte(z.de)))
-	//		case 0x06:
-	//			t := z.rl(z.bus.Read(z.hl))
-	//			z.bus.Write(z.hl, t)
-	//		case 0x07:
-	//			z.af = z.af&0x00ff | uint16(z.rl(byte(z.af>>8)))<<8
-	//		default:
-	//			panic(fmt.Sprintf("---d %02x %02x %02x %02x %02x",
-	//				byte4&0xc0,
-	//				z.bus.Read(z.pc+0),
-	//				z.bus.Read(z.pc+1),
-	//				z.bus.Read(z.pc+2),
-	//				z.bus.Read(z.pc+3)))
-	//		}
-	//	default:
-	//		// XXX should become a nop
-	//		panic(fmt.Sprintf("d %02x op %02x %02x %02x %02x %02x",
-	//			byte4&0xc0,
-	//			op,
-	//			z.bus.Read(z.pc+0),
-	//			z.bus.Read(z.pc+1),
-	//			z.bus.Read(z.pc+2),
-	//			z.bus.Read(z.pc+3)))
-	//	}
-	//case 0x40: // bit b,(ix+d)
-	//	bit := byte4 & 0x38 >> 3
-	//	displacement := uint16(z.bus.Read(z.pc + 2))
-	//	val := z.bus.Read(z.ix + displacement)
-	//	z.bit(bit, val)
-	//case 0x80: // res b,(ix+d)
-	//	bit := byte4 & 0x38 >> 3
-	//	displacement := uint16(z.bus.Read(z.pc + 2))
-	//	val := z.bus.Read(z.ix + displacement)
-	//	z.bus.Write(z.ix+displacement, z.res(bit, val))
-	//case 0xc0: // set b,(ix+d)
-	//	bit := byte4 & 0x38 >> 3
-	//	displacement := uint16(z.bus.Read(z.pc + 2))
-	//	val := z.bus.Read(z.ix + displacement)
-	//	z.bus.Write(z.ix+displacement, z.set(bit, val))
-	//default:
-	//	panic(fmt.Sprintf("+++d %02x %02x %02x %02x %02x",
-	//		byte4&0xc0,
-	//		z.bus.Read(z.pc+0),
-	//		z.bus.Read(z.pc+1),
-	//		z.bus.Read(z.pc+2),
-	//		z.bus.Read(z.pc+3)))
-	//}
+	return nil
+}
+
+func (z *z80) fdcb() error {
+	// zilog really is crazy, 4th byte + bit 7&6
+	// descriminates the instruction type
+	byte4 := z.bus.Read(z.pc + 3)
+	xx := byte4 >> 6
+	yy := 0x07 & (byte4 >> 3)
+	zz := 0x07 & byte4
+	switch xx {
+	case 0:
+		if zz == 6 {
+			// rot[y],(IY+d)
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			val := z.bus.Read(z.iy + displacement)
+			switch yy {
+			case 0x00:
+				val = z.rlc(val)
+			case 0x01:
+				val = z.rrc(val)
+			case 0x02:
+				val = z.rl(val)
+			case 0x03:
+				val = z.rr(val)
+			case 0x04:
+				val = z.sla(val)
+			case 0x05:
+				val = z.sra(val)
+			case 0x06:
+				val = z.sll(val)
+			case 0x07:
+				val = z.srl(val)
+			}
+			z.bus.Write(z.iy+displacement, val)
+			z.totalCycles += 1 // XXX
+			z.pc += 4
+			return nil
+		}
+		// ld r[z], rot[y] (IY+d)
+		panic("ld")
+	case 0x01:
+		if zz == 6 {
+			bit := byte4 & 0x38 >> 3
+			displacement := uint16(z.bus.Read(z.pc + 2))
+			val := z.bus.Read(z.iy + displacement)
+			z.bit(bit, val)
+
+			z.totalCycles += 1 // XXX
+			z.pc += 4
+			return nil
+		}
+	case 0x02:
+		var val byte
+		switch zz {
+		case 0x00:
+			val = byte(z.bc >> 8)
+		case 0x01:
+			val = byte(z.bc)
+		case 0x02:
+			val = byte(z.de >> 8)
+		case 0x03:
+			val = byte(z.de)
+		case 0x04:
+			val = byte(z.hl >> 8)
+		case 0x05:
+			val = byte(z.hl)
+		case 0x06:
+			val = z.bus.Read(z.hl)
+		case 0x07:
+			val = byte(z.af >> 8)
+		}
+
+		switch yy {
+		case 0x00:
+			z.add(val)
+		case 0x01:
+			z.adc(val)
+		case 0x02:
+			z.sub(val)
+		case 0x03:
+			z.sbc(val)
+		case 0x04:
+			z.and(val)
+		case 0x05:
+			z.xor(val)
+		case 0x06:
+			z.or(val)
+		case 0x07:
+			z.cp(val)
+		}
+
+		z.totalCycles += 1 // XXX
+		z.pc += 4
+		return nil
+	default:
+		fmt.Printf("x %x y %x z %x fd cb %02x %02x\n", xx, yy, zz, z.bus.Read(z.pc+2), byte4)
+		panic("yyy")
+	}
 
 	return nil
 }
@@ -2411,10 +2399,7 @@ func (z *z80) step() error {
 		case 0xbe: // cp (iyl+d)
 			z.cp(z.bus.Read(z.iy + uint16(z.bus.Read(z.pc+2))))
 		case 0xcb: // bit b,(iy+d)
-			bit := z.bus.Read(z.pc+3) & 0x38 >> 3
-			displacement := uint16(z.bus.Read(z.pc + 2))
-			val := z.bus.Read(z.iy + displacement)
-			z.bit(bit, val)
+			return z.fdcb()
 		case 0xe1: // pop iy
 			z.iy = uint16(z.bus.Read(z.sp)) | z.iy&0xff00
 			z.sp++
