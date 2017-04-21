@@ -158,7 +158,7 @@ tests:
 	; dw	ld8ix3	; ok
 	; dw	ld8ixy	; ok
 	; dw	ld8rr	; ok
-	dw	ld8rrx	; NI
+	; dw	ld8rrx	; ok
 	; dw	lda	; ok
 	; dw	ldd1	; ok
 	; dw	ldd2	; ok
@@ -167,7 +167,7 @@ tests:
 	; dw	negop	; ok
 	; dw	rldop	; ok
 	; dw	rot8080	; ok
-	; dw	rotxy	; FAIL
+	dw	rotxy	; FAIL
 	; dw	rotz80	; ok
 	; dw	srz80	; ok
 	; dw	srzx	; NI

@@ -4141,7 +4141,7 @@ var (
 			dstR:     []string{"nz", ""},
 			src:      displacement,
 			noBytes:  2,
-			noCycles: 12, // XXX or 7
+			noCycles: 7,
 		},
 		// 0x21 ld hl,nn
 		opcode{
@@ -4207,7 +4207,7 @@ var (
 			dstR:     []string{"z", ""},
 			src:      displacement,
 			noBytes:  2,
-			noCycles: 12, // XXX or 7
+			noCycles: 7,
 		},
 		// 0x29 add hl,hl
 		opcode{
@@ -4275,7 +4275,7 @@ var (
 			dstR:     []string{"nc", ""},
 			src:      displacement,
 			noBytes:  2,
-			noCycles: 12, // XXX or 7
+			noCycles: 7,
 		},
 		// 0x31 ld sp,nn
 		opcode{
@@ -4341,7 +4341,7 @@ var (
 			dstR:     []string{"c", ""},
 			src:      displacement,
 			noBytes:  2,
-			noCycles: 12, // XXX or 7
+			noCycles: 7,
 		},
 		// 0x39 add hl,sp
 		opcode{
@@ -5670,7 +5670,7 @@ var (
 			noBytes:  1,
 			noCycles: 10,
 		},
-		// 0xc2
+		// 0xc2 jp nz,nn
 		opcode{
 			mnemonic: []string{"jp", "jnz"},
 			dst:      condition,
@@ -5679,7 +5679,7 @@ var (
 			noBytes:  3,
 			noCycles: 10,
 		},
-		// 0xc3 jp, nn
+		// 0xc3 jp nn
 		opcode{
 			mnemonic: []string{"jp", "jmp"},
 			dst:      immediateExtended,

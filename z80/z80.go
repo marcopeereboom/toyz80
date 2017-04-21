@@ -198,7 +198,7 @@ func (z *z80) ddcb() error {
 	xx := byte4 >> 6
 	yy := 0x07 & (byte4 >> 3)
 	zz := 0x07 & byte4
-	fmt.Printf("x %x y %x z %x dd cb %02x %02x ->", xx, yy, zz,
+	fmt.Printf("x %x y %x z %x dd cb %02x %02x -> ", xx, yy, zz,
 		z.bus.Read(z.pc+2), byte4)
 	switch xx {
 	case 0:
@@ -206,34 +206,36 @@ func (z *z80) ddcb() error {
 			// rot[y],(IX+d)
 			displacement := uint16(z.bus.Read(z.pc + 2))
 			val := z.bus.Read(z.ix + displacement)
-			fmt.Printf("val %02x ", val)
+			fmt.Printf("val %02x F %02x ", val, byte(z.af))
 			switch yy {
 			case 0x00:
 				fmt.Printf("rlc ")
-				z.bus.Write(z.ix+displacement, z.rlc(val))
+				val = z.rlc(val)
 			case 0x01:
 				fmt.Printf("rrc ")
-				z.bus.Write(z.ix+displacement, z.rrc(val))
+				val = z.rrc(val)
 			case 0x02:
 				fmt.Printf("rl ")
-				z.bus.Write(z.ix+displacement, z.rl(val))
+				val = z.rl(val)
 			case 0x03:
 				fmt.Printf("rr ")
-				z.bus.Write(z.ix+displacement, z.rr(val))
+				val = z.rr(val)
 			case 0x04:
 				fmt.Printf("sla ")
-				z.bus.Write(z.ix+displacement, z.sla(val))
+				val = z.sla(val)
 			case 0x05:
 				fmt.Printf("sra ")
-				z.bus.Write(z.ix+displacement, z.sra(val))
+				val = z.sra(val)
 			case 0x06:
 				fmt.Printf("sll ")
-				z.bus.Write(z.ix+displacement, z.sll(val))
+				val = z.sll(val)
 			case 0x07:
 				fmt.Printf("srl ")
-				z.bus.Write(z.ix+displacement, z.srl(val))
+				val = z.srl(val)
 			}
-			fmt.Printf("new val %02x\n", z.bus.Read(z.ix+displacement))
+			z.bus.Write(z.ix+displacement, val)
+			fmt.Printf("new val %02x new F %02x\n",
+				z.bus.Read(z.ix+displacement), byte(z.af))
 			z.totalCycles += 1 // XXX
 			z.pc += 4
 			return nil
@@ -541,11 +543,9 @@ func (z *z80) step() error {
 	case 0x20: // jr nz,d
 		if z.af&zero == 0 {
 			z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
-			z.totalCycles += opcodeStruct.noCycles
+			z.totalCycles += 12
 			return nil
 		}
-		// XXX make this generic
-		z.totalCycles += 7
 	case 0x21: // ld hl,nn
 		z.hl = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
 	case 0x22: // ld (nn),hl
@@ -565,11 +565,9 @@ func (z *z80) step() error {
 	case 0x28: // jr z,d
 		if z.af&zero == zero {
 			z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
-			z.totalCycles += opcodeStruct.noCycles
+			z.totalCycles += 12
 			return nil
 		}
-		// XXX make this generic
-		z.totalCycles += 7
 	case 0x29: // add hl,hl
 		z.hl = z.add16(z.hl, z.hl)
 	case 0x2a: // ld (hl),nn
@@ -593,11 +591,9 @@ func (z *z80) step() error {
 	case 0x30: // jr nc,d
 		if z.af&carry == 0 {
 			z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
-			z.totalCycles += opcodeStruct.noCycles
+			z.totalCycles += 12
 			return nil
 		}
-		// XXX make this generic
-		z.totalCycles += 7
 	case 0x31: // ld sp,nn
 		z.sp = uint16(z.bus.Read(z.pc+1)) | uint16(z.bus.Read(z.pc+2))<<8
 	case 0x32: // ld (nn),a
@@ -620,11 +616,9 @@ func (z *z80) step() error {
 	case 0x38: // jr c,d
 		if z.af&carry == carry {
 			z.pc = z.pc + 2 + uint16(int8(z.bus.Read(z.pc+1)))
-			z.totalCycles += opcodeStruct.noCycles
+			z.totalCycles += 12
 			return nil
 		}
-		// XXX make this generic
-		z.totalCycles += 7
 	case 0x39: // add hl,sp
 		z.hl = z.add16(z.hl, z.sp)
 	case 0x3d: // dec a
