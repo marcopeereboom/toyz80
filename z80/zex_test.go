@@ -88,6 +88,8 @@ func TestZexDoc(t *testing.T) {
 				if err2 != nil {
 					t.Fatal(err2)
 				}
+			case HaltError:
+				return
 			default:
 				t.Fatal(err)
 			}

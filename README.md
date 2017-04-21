@@ -62,6 +62,7 @@ Currently the following commands are supported in the control window:
 * `pc <address>`
 
 ### To-Do
+* More instruction tests.
 * Add memory fill/load instructions to control.
 * Add Assembler to control.
 * Add interrupt handling.
