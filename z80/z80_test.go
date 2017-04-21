@@ -4966,6 +4966,28 @@ func TestInstructions(t *testing.T) {
 					z.af&carry == 0
 			},
 		},
+		// 0xdd 0x36
+		{
+			name: "ld (ix+d),n",
+			mn:   "ld",
+			dst:  "(ix+$ff)",
+			src:  "$aa",
+			data: []byte{0xdd, 0x36, 0xff, 0xaa},
+			init: func(z *z80) {
+				z.ix = 0x1122
+				z.bus.Write(0x1122-1, 0xff)
+			},
+			expect: func(z *z80) bool {
+				return z.pc == 0x0004 && z.ix == 0x1122 &&
+					z.bus.Read(0x1122-1) == 0xaa &&
+					z.af&sign == 0 &&
+					z.af&zero == 0 &&
+					z.af&parity == 0 &&
+					z.af&halfCarry == 0 &&
+					z.af&addsub == 0 &&
+					z.af&carry == 0
+			},
+		},
 		// 0xdd 0x86
 		{
 			name: "add a,(ix+d)",
