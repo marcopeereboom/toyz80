@@ -262,7 +262,7 @@ $ cp zout/zexdoc.cim zexdoc.com
 
 The zexdoc tests are very good however they do not test negative indexed
 operations.  I missed a signed two's complement displacement and the test
-passed however C compiled code did not work right.  That was a hilarious to
+passed however C compiled code did not work right.  That was hilarious to
 debug.
 
 ```
