@@ -1,6 +1,10 @@
 #include <stdio.h>
 #include <stdint.h>
+#include <math.h>
 
+#if defined(__clang__)
+#define init_console()
+#else
 #define I8251_ADDRESS	(0x02)
 #define	I8251_DATA	(I8251_ADDRESS )
 #define	I8251_STATUS	(I8251_ADDRESS + 1)
@@ -81,47 +85,34 @@ __asm
 	out	(I8251_STATUS),a	// and reset error flag
 __endasm;
 }
+#endif /* __clang__ */
 
-uint16_t
-hex(uint8_t x)
+void
+space(int x)
 {
-	uint16_t	rv;
-	char		l = x&0x0f;
-
-	if (l < 10) {
-		rv = l + '0';
-	} else {
-		rv = l + 'a';
+	int	i;
+	for (i = 0; i < x; i++) {
+		printf(" ");
 	}
-
-	l >>= 4;
-	if (l < 10) {
-		rv |= (uint16_t)((l + '0'))<<8;
-	} else {
-		rv |= (uint16_t)((l + 'a'))<<8;
-	}
-
-	return (rv);
 }
 
 int
 main(int argc, char *argv[])
 {
-	int		table, i;
-	uint16_t	x;
+	float	x;
 
 	argc; argv; // shut compiler up
 
 	init_console();
-	printf("Hello Z80 C world! int %d string %s hex %x\r\n", 1, "haha", 0xff);
+	printf("Hello Z80 C world! int %d string %s hex %x\r\n\r\n",
+	    1, "haha", 0xff);
 
-	x = hex(0xa5);
-	printf("hex %s\r\n", (char *)&x);
-	for (table = 1; table <= 12; table++) {
-		for (i = 1; i <= 10; i++) {
-			printf("%d x %d = %d\r\n", i, table, i * table);
-		}
-	}
+	x = 0;
+	do {
+		space((int)(40+sinf(x)*20));
+		printf("*\r\n");
+		x += 0.2;
+	} while (x <= 6.2);
 
 	return (0);
 }
