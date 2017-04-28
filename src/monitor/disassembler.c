@@ -7,6 +7,10 @@
 
 #define displacement(a, b)	(uint16_t)(a+2+(int8_t)(b))
 
+#if !defined (__SDCC)
+uint8_t		memory[64 * 1024];
+#endif
+
 const char *alu[] = {"add", "adc", "sub", "sbc", "and", "xor", "or", "cp"};
 const char *r[] = {"b", "c", "d", "e", "h", "l", "(hl)", "a"};
 const char *rp[] = {"bc", "de", "hl", "sp"};

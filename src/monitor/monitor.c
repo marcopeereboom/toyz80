@@ -2,7 +2,20 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "disassembler.h"
+
+#if defined(__SDCC)
 #include "i8251.h"
+
+#define ECHO_CHAR
+#endif
+
+#if defined ECHO_CHAR
+#define ECHO(c) \
+	printf("%c", c);
+#else
+#define ECHO(c)
+#endif
 
 /*
  * cross compile
@@ -17,19 +30,6 @@
 
 const char	*version = "0.1";
 
-#if defined(__SDCC)
-#define ECHO_CHAR
-#else
-uint8_t		memory[64 * 1024];
-#endif
-
-#if defined ECHO_CHAR
-#define ECHO(c) \
-	printf("%c", c);
-#else
-#define ECHO(c)
-#endif
-
 #define LINE_MAX	(80)
 void
 parse(char *l)
@@ -39,24 +39,18 @@ parse(char *l)
 	}
 }
 
-#if defined (__SDCC)
-int
-main(int argc, char *argv[])
+void
+monitor(void)
 {
-	int c, i= 0, quit = 0;
 	char l[LINE_MAX];
-
-	argc; argv; // shut compiler up
-
-	init_console();
+	int c, i= 0, quit = 0;
 
 	printf("Z80-monitor %s\r\n", version);
 
 	do {
+		// getchar on UNIX is buffered but we ignore that.
 		c = getchar();
 		switch (c) {
-		case 27:
-			quit = 1;
 			break;
 		// deal with backspace here as well
 		case '\n':
@@ -76,47 +70,19 @@ main(int argc, char *argv[])
 			break;
 		}
 	} while (!quit);
-
-	return (0);
 }
-#else
 
 int
 main(int argc, char *argv[])
 {
-	//char m[]= {0x08, 0x08};
+#if defined (__SDCC)
+	argc; argv; // shut compiler up
+	init_console();
+#else
 	memset(memory, 0, sizeof(memory));
-	memory[0] = 0xe9;
-	memory[1] = 0x01;
-	memory[2] = 0x10;
-	disassemble(0);
-	//printf("x %d\n", x);
+#endif
 
-	//int c, i= 0, quit = 0;
-	//char l[LINE_MAX];
-	//printf("Z80-monitor %s\n", version);
-	//do {
-	//	c = getchar();
-	//	switch (c) {
-	//	// deal with backspace here as well
-	//	case '\n':
-	//		printf("got (%d): %s\n", i, l);
-	//		parse(l);
-	//		i = 0;
-	//		l[i] = '\0';
-	//		break;
-	//	default:
-	//		if (i > LINE_MAX-2) {
-	//			// silently drop for now
-	//			continue;
-	//		}
-	//		l[i++] = c;
-	//		l[i] = '\0';
-	//		ECHO(c);
-	//		break;
-	//	}
-	//} while (!quit);
+	monitor();
 
 	return (0);
 }
-#endif
