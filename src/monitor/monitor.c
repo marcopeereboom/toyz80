@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 #include <stdint.h>
 
 #include "disassembler.h"
@@ -30,12 +31,56 @@
 
 const char	*version = "0.1";
 
+#define TOKENS_MAX	(4)
+
+void
+help(void)
+{
+	printf("help\tthis help\r\n" \
+	    "d\tdisassemble\r\n");
+}
+
 #define LINE_MAX	(80)
 void
 parse(char *l)
 {
-	if (!strcmp(l, "moo")) {
-		printf("got moo");
+	char		lines, i, n, x, *p;
+	char		*tokens[TOKENS_MAX];
+	uint16_t	address;
+
+	x = 0;
+	p = strtok(l, " ");
+
+	while (p != NULL && x < TOKENS_MAX) {
+		tokens[x] = p;
+		p = strtok(NULL, " ");
+		x++;
+	}
+
+	if (x == 0) {
+		return;
+	}
+
+	if (!strcmp(tokens[0], "help")) {
+		help();
+	} else if (!strcmp(tokens[0], "d")) {
+		if (x > 1) {
+			address = atoi(tokens[1]);
+		} else {
+			printf("usage: d <address> [count]\r\n");
+			return;
+		}
+		if (x > 2) {
+			lines = atoi(tokens[2]);
+		} else {
+			lines = 1;
+		}
+		for (i =0; i < lines; i++) {
+			n = disassemble(address);
+			address += n;
+		}
+	} else {
+		printf("invalid command\r\n");
 	}
 }
 
@@ -51,11 +96,16 @@ monitor(void)
 		// getchar on UNIX is buffered but we ignore that.
 		c = getchar();
 		switch (c) {
+		case 27: // Esc
+			quit = 1;
 			break;
-		// deal with backspace here as well
+		case '\r':
+			/* FALLTHROUGH */
 		case '\n':
-			printf("got (%d): %s\n", i, l);
+			printf("\r\n");
+
 			parse(l);
+
 			i = 0;
 			l[i] = '\0';
 			break;

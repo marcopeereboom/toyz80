@@ -365,7 +365,7 @@ disassemble(uint16_t address)
 		sprintf(&hex[i*3], "%02x ", m[i]);
 	}
 
-	printf("%04x: %-12s%-12s%s\n", address, hex, mnemonic, operands);
+	printf("%04x: %-12s%-12s%s\r\n", address, hex, mnemonic, operands);
 	return (bytes);
 }
 
