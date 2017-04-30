@@ -31,4 +31,3 @@
 #define	I8251_S_RXRDY			(1<<1)
 
 void	init_console(void);
-void	putchar(unsigned char);

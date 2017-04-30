@@ -16,7 +16,7 @@ __endasm;
 
 // override getchar from stdlib
 int
-getchar(void)
+getchar(void) __naked
 {
 __asm
 l1:	in	a,(I8251_STATUS)	// get status
@@ -26,7 +26,6 @@ l1:	in	a,(I8251_STATUS)	// get status
 	ld	h,#0			// reset high return value
 	ld	l,a			// set low return value
 __endasm;
-	// we eat the warning to save 3 bytes.
 }
 
 // Can't be wrapped because of sdcc.
